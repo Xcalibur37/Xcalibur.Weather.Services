@@ -422,7 +422,17 @@ Copyright © 2006 - 2026, Xcalibur Systems, LLC - All Rights Reserved
 
 ## 🔗 Related Projects
 
-- [Xcalibur.Weather.Models](https://github.com/Xcalibur37/Xcalibur.Weather.Models) - Shared models and DTOs
+- **[Xcalibur.Weather.Models](https://www.nuget.org/packages/Xcalibur.Weather.Models/)** - Core weather data models and DTOs ([GitHub](https://github.com/Xcalibur37/Xcalibur.Weather.Models))
+- **[Xcalibur.Weather.Helpers](https://www.nuget.org/packages/Xcalibur.Weather.Helpers/)** - Utility functions and conversion helpers ([GitHub](https://github.com/Xcalibur37/Xcalibur.Weather.Helpers))
+
+---
+
+*Part of the Xcalibur Weather ecosystem for comprehensive weather data integration.*
+
+## Author
+
+**Joshua Arzt**  
+Xcalibur Systems, LLC
 
 ---
 
