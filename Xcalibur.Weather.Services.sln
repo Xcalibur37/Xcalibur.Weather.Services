@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 18
+VisualStudioVersion = 18.3.11520.95
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Xcalibur.Weather.Services", "Xcalibur.Weather.Services\Xcalibur.Weather.Services.csproj", "{5BFF0628-550A-ED03-1913-349CD406F9C8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Xcalibur.Weather.Services.Tests", "Xcalibur.Weather.Services.Tests\Xcalibur.Weather.Services.Tests.csproj", "{863A6B07-9644-C1F2-1DD9-056820028FDD}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{5BFF0628-550A-ED03-1913-349CD406F9C8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5BFF0628-550A-ED03-1913-349CD406F9C8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5BFF0628-550A-ED03-1913-349CD406F9C8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5BFF0628-550A-ED03-1913-349CD406F9C8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{863A6B07-9644-C1F2-1DD9-056820028FDD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{863A6B07-9644-C1F2-1DD9-056820028FDD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{863A6B07-9644-C1F2-1DD9-056820028FDD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{863A6B07-9644-C1F2-1DD9-056820028FDD}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {ACFA9E94-8470-4E50-B3EE-8D343ABF185A}
+	EndGlobalSection
+EndGlobal
