@@ -266,5 +266,25 @@ namespace Xcalibur.Weather.Services.Tests.WeatherProvider
             (await service.GetDailyForecastAsync("1", "2", 1, CancellationToken.None)).Should().BeNull();
             (await service.GetYesterdayForecastAsync("1", "2", "2023-01-01", CancellationToken.None)).Should().BeNull();
         }
+
+        [Fact]
+        public async Task GetCurrentWeatherAsync_ReturnsNull_WhenResponseInvalidJson()
+        {
+            // Arrange
+            var response = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("{ invalid-json ", Encoding.UTF8, "application/json")
+            };
+
+            using var http = new HttpClient(new DelegatingHandlerStub(response));
+            http.Timeout = TimeSpan.FromSeconds(30);
+            var service = new OpenMeteoService(http, NullLogger<OpenMeteoService>.Instance);
+
+            // Act
+            var result = await service.GetCurrentWeatherAsync("12.34", "56.78", CancellationToken.None);
+
+            // Assert
+            result.Should().BeNull();
+        }
     }
 }

@@ -13,6 +13,48 @@ namespace Xcalibur.Weather.Services.Tests.WeatherProvider
     public sealed class IpGeoServiceTests
     {
         [Fact]
+        public async Task TestApiKey_ReturnsTrue_WhenHttpOk()
+        {
+            // Arrange
+            var response = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("{}", Encoding.UTF8, "application/json")
+            };
+
+            using var http = new HttpClient(new DelegatingHandlerStub(response));
+            http.Timeout = TimeSpan.FromSeconds(30);
+
+            var service = new IpGeoService(http, "DUMMY_KEY", NullLogger<IpGeoService>.Instance);
+
+            // Act
+            var result = await service.TestApiKey(CancellationToken.None);
+
+            // Assert
+            result.Should().BeTrue();
+        }
+
+        [Fact]
+        public async Task TestApiKey_ReturnsFalse_WhenUnauthorized()
+        {
+            // Arrange
+            var response = new HttpResponseMessage(HttpStatusCode.Unauthorized)
+            {
+                Content = new StringContent("unauthorized")
+            };
+
+            using var http = new HttpClient(new DelegatingHandlerStub(response));
+            http.Timeout = TimeSpan.FromSeconds(30);
+
+            var service = new IpGeoService(http, "DUMMY_KEY", NullLogger<IpGeoService>.Instance);
+
+            // Act
+            var result = await service.TestApiKey(CancellationToken.None);
+
+            // Assert
+            result.Should().BeFalse();
+        }
+
+        [Fact]
         public async Task GetSunMoonDataAsync_ReturnsDeserializedResponse_WhenHttpOk()
         {
             // Arrange - valid Astronomy JSON

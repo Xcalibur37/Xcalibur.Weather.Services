@@ -8,6 +8,12 @@ A comprehensive .NET library providing HTTP client services for weather-related 
 
 **Created by**: Joshua Arzt | **Company**: Xcalibur Systems, LLC.
 
+## Latest Updates
+
+- Package version: `1.0.2`
+- Added `SunriseSunsetService` for sunrise and sunset data
+- Added `OpenStreetMapService` for Nominatim geocoding
+
 ## 📋 Table of Contents
 
 - [Features](#-features)
@@ -16,11 +22,15 @@ A comprehensive .NET library providing HTTP client services for weather-related 
   - [OpenMeteoService](#openmeteoservice)
   - [GeocodioService](#geocodioservice)
   - [IpGeoService](#ipgeoservice)
+  - [SunriseSunsetService](#sunrisesunsetservice)
+  - [OpenStreetMapService](#openstreetmapservice)
 - [Usage](#-usage)
   - [Basic Setup](#basic-setup)
   - [OpenMeteo Examples](#openmeteo-examples)
   - [Geocodio Examples](#geocodio-examples)
   - [IpGeo Examples](#ipgeo-examples)
+  - [SunriseSunset Examples](#sunrisesunset-examples)
+  - [OpenStreetMap Examples](#openstreetmap-examples)
 - [API Endpoints](#-api-endpoints)
 - [Dependencies](#-dependencies)
 - [Testing](#-testing)
@@ -42,6 +52,7 @@ A comprehensive .NET library providing HTTP client services for weather-related 
 - **Error Handling**: Robust error handling with detailed logging
 - **Streaming Deserialization**: Efficient memory usage with streaming JSON deserialization
 - **Type-Safe**: Strongly-typed responses using Xcalibur.Weather.Models
+- **Flexible Provider Coverage**: Includes both API key and no-key providers for geocoding and astronomy data
 
 ## 📦 Installation
 
@@ -103,29 +114,48 @@ The `IpGeoService` provides astronomical data for specific geographic locations.
 - Moon phase information
 - API key validation
 
+### SunriseSunsetService
+
+The `SunriseSunsetService` provides sunrise and sunset data from SunriseSunset.io without requiring an API key.
+
+**Key Features:**
+- Sunrise and sunset times
+- Solar noon and day length data
+- No API key required
+- Lightweight astronomy lookups by coordinates
+
+### OpenStreetMapService
+
+The `OpenStreetMapService` provides geocoding through OpenStreetMap Nominatim.
+
+**Key Features:**
+- Forward geocoding (address to coordinates)
+- Address details in results
+- Country-filtered searches
+- No API key required
+- Built-in default `User-Agent` support for Nominatim requests
+
 ## 🚀 Usage
 
 ### Basic Setup
 
 ```csharp
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Xcalibur.Weather.Services.WeatherProvider.OpenMeteo;
 using Xcalibur.Weather.Services.WeatherProvider.Geocodio;
 using Xcalibur.Weather.Services.WeatherProvider.IpGeo;
+using Xcalibur.Weather.Services.WeatherProvider.SunriseSunset;
+using Xcalibur.Weather.Services.WeatherProvider.OpenStreetMap;
 
-// Configure services
-var services = new ServiceCollection();
-services.AddLogging(builder => builder.AddConsole());
-services.AddHttpClient();
-
-var serviceProvider = services.BuildServiceProvider();
-
-// Create service instances
-var httpClient = serviceProvider.GetRequiredService<HttpClient>();
-var logger = serviceProvider.GetRequiredService<ILogger<OpenMeteoService>>();
+var httpClient = new HttpClient();
+var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+var logger = loggerFactory.CreateLogger<OpenMeteoService>();
 
 var openMeteoService = new OpenMeteoService(httpClient, logger);
+var geocodioService = new GeocodioService(httpClient, "YOUR_GEOCODIO_API_KEY", loggerFactory.CreateLogger<GeocodioService>());
+var ipGeoService = new IpGeoService(httpClient, "YOUR_IPGEO_API_KEY", loggerFactory.CreateLogger<IpGeoService>());
+var sunriseSunsetService = new SunriseSunsetService(httpClient, loggerFactory.CreateLogger<SunriseSunsetService>());
+var openStreetMapService = new OpenStreetMapService(httpClient, NullLogger.Instance);
 ```
 
 ### OpenMeteo Examples
@@ -156,10 +186,10 @@ if (airQuality?.Current != null)
 }
 ```
 
-#### Get 48-Hour Hourly Forecast
+#### Get Hourly Forecast
 
 ```csharp
-var hourlyForecast = await openMeteoService.GetHourlyForecast48HoursAsync("40.7128", "-74.0060");
+var hourlyForecast = await openMeteoService.GetHourlyForecastAsync("40.7128", "-74.0060");
 
 if (hourlyForecast?.Hourly != null)
 {
@@ -276,6 +306,57 @@ if (sunMoonData != null)
 }
 ```
 
+### SunriseSunset Examples
+
+#### Setup
+
+```csharp
+var sunriseSunsetService = new SunriseSunsetService(
+    httpClient,
+    loggerFactory.CreateLogger<SunriseSunsetService>());
+```
+
+#### Get Sunrise and Sunset Data
+
+```csharp
+var astronomy = await sunriseSunsetService.GetSunriseSunsetAsync("40.7128", "-74.0060");
+
+if (astronomy?.Results != null)
+{
+    Console.WriteLine($"Sunrise: {astronomy.Results.Sunrise}");
+    Console.WriteLine($"Sunset: {astronomy.Results.Sunset}");
+    Console.WriteLine($"Day Length: {astronomy.Results.DayLength}");
+    Console.WriteLine($"Solar Noon: {astronomy.Results.SolarNoon}");
+}
+```
+
+### OpenStreetMap Examples
+
+#### Setup
+
+```csharp
+var openStreetMapService = new OpenStreetMapService(
+    httpClient,
+    loggerFactory.CreateLogger<OpenStreetMapService>());
+```
+
+#### Search for Locations
+
+```csharp
+var locations = await openStreetMapService.GetLocationsAsync(
+    "1600 Pennsylvania Avenue NW, Washington, DC",
+    "us");
+
+if (locations != null)
+{
+    foreach (var location in locations)
+    {
+        Console.WriteLine($"Display Name: {location.DisplayName}");
+        Console.WriteLine($"Coordinates: {location.Lat}, {location.Lon}");
+    }
+}
+```
+
 ## 🌐 API Endpoints
 
 ### Open-Meteo
@@ -297,11 +378,22 @@ if (sunMoonData != null)
 - **Sign Up**: [IpGeolocation.io](https://ipgeolocation.io/)
 - **Documentation**: [IpGeo API Docs](https://ipgeolocation.io/documentation/astronomy-api.html)
 
+### SunriseSunset.io
+- **Base URL**: `https://api.sunrisesunset.io/json`
+- **API Key**: Not required
+- **Documentation**: [SunriseSunset.io Docs](https://sunrisesunset.io/api/)
+
+### OpenStreetMap Nominatim
+- **Base URL**: `https://nominatim.openstreetmap.org/search`
+- **API Key**: Not required
+- **Requirement**: A descriptive `User-Agent` header is required
+- **Documentation**: [Nominatim Search API](https://nominatim.org/release-docs/latest/api/Search/)
+
 ## 📚 Dependencies
 
 - **.NET 10.0**: Target framework
-- **Microsoft.Extensions.Hosting** (v10.0.3): For dependency injection and hosting abstractions
-- **Xcalibur.Weather.Models** (v1.0.0): Shared models and DTOs for weather data
+- **Microsoft.Extensions.Hosting** (v10.0.7): For hosting, logging, and dependency injection abstractions
+- **Xcalibur.Weather.Models**: Shared models and DTOs for weather data
 
 ## 🧪 Testing
 
@@ -313,9 +405,9 @@ The project includes comprehensive unit tests in the `Xcalibur.Weather.Services.
 dotnet test
 ```
 
-### Test Coverage
+### Current Test Coverage
 
-- `OpenMeteoServiceTests`: Tests for all Open-Meteo API endpoints
+- `OpenMeteoServiceTests`: Tests for Open-Meteo API operations
 - `GeocodioServiceTests`: Tests for geocoding functionality and API key validation
 - `IpGeoServiceTests`: Tests for astronomical data retrieval
 
@@ -328,8 +420,12 @@ Xcalibur.Weather.Services/
 │   │   └── OpenMeteoService.cs
 │   ├── Geocodio/
 │   │   └── GeocodioService.cs
-│   └── IpGeo/
-│       └── IpGeoService.cs
+│   ├── IpGeo/
+│   │   └── IpGeoService.cs
+│   ├── SunriseSunset/
+│   │   └── SunriseSunsetService.cs
+│   └── OpenStreetMap/
+│       └── OpenStreetMapService.cs
 ├── Xcalibur.Weather.Services.csproj
 │
 Xcalibur.Weather.Services.Tests/
@@ -381,8 +477,9 @@ catch (OperationCanceledException)
 2. **Use Dependency Injection**: Register services in your DI container for better testability
 3. **Handle Nulls**: All service methods return nullable types; always check for null responses
 4. **Monitor Logs**: Enable debug logging to troubleshoot API issues
-5. **API Rate Limits**: Be mindful of rate limits for Geocodio and IpGeo (Open-Meteo is unlimited)
+5. **Respect Provider Policies**: Be mindful of rate limits and usage policies for Geocodio, IpGeo, SunriseSunset.io, and OpenStreetMap Nominatim
 6. **Secure API Keys**: Store API keys in secure configuration (Azure Key Vault, user secrets, etc.)
+7. **Set a User-Agent When Needed**: OpenStreetMap Nominatim requires a meaningful `User-Agent`; the service sets a default if one is not already present
 
 ## 🔐 API Key Management
 
@@ -436,4 +533,4 @@ Xcalibur Systems, LLC
 
 ---
 
-**Note**: This library requires API keys for Geocodio and IpGeolocation.io services. Open-Meteo is free and doesn't require an API key.
+**Note**: This library requires API keys for Geocodio and IpGeolocation.io services. Open-Meteo, SunriseSunset.io, and OpenStreetMap Nominatim do not require API keys.

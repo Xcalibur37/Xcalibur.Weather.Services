@@ -13,6 +13,48 @@ namespace Xcalibur.Weather.Services.Tests.WeatherProvider
     public sealed class GeocodioServiceTests
     {
         [Fact]
+        public async Task TestApiKey_ReturnsTrue_WhenHttpOk()
+        {
+            // Arrange
+            var response = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("{}", Encoding.UTF8, "application/json")
+            };
+
+            using var http = new HttpClient(new DelegatingHandlerStub(response));
+            http.Timeout = TimeSpan.FromSeconds(30);
+
+            var service = new GeocodioService(http, "DUMMY_TOKEN", NullLogger<GeocodioService>.Instance);
+
+            // Act
+            var result = await service.TestApiKey(CancellationToken.None);
+
+            // Assert
+            result.Should().BeTrue();
+        }
+
+        [Fact]
+        public async Task TestApiKey_ReturnsFalse_WhenForbidden()
+        {
+            // Arrange
+            var response = new HttpResponseMessage(HttpStatusCode.Forbidden)
+            {
+                Content = new StringContent("forbidden")
+            };
+
+            using var http = new HttpClient(new DelegatingHandlerStub(response));
+            http.Timeout = TimeSpan.FromSeconds(30);
+
+            var service = new GeocodioService(http, "DUMMY_TOKEN", NullLogger<GeocodioService>.Instance);
+
+            // Act
+            var result = await service.TestApiKey(CancellationToken.None);
+
+            // Assert
+            result.Should().BeFalse();
+        }
+
+        [Fact]
         public async Task GetLocationsAsync_ReturnsDeserializedResponse_WhenHttpOk()
         {
             // Arrange - valid Geocodio JSON with one result
