@@ -4,15 +4,17 @@
 [![NuGet](https://img.shields.io/nuget/v/Xcalibur.Weather.Services.svg)](https://www.nuget.org/packages/Xcalibur.Weather.Services/)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE-2.0.txt)
 
-A comprehensive .NET library providing HTTP client services for weather-related APIs. Seamless integration with multiple weather data providers including Open-Meteo, Geocodio, and IpGeolocation.io for weather forecasting, geocoding, air quality monitoring, and astronomical data.
+A comprehensive .NET library providing HTTP client services for weather-related APIs. Seamless integration with multiple weather data providers including Open-Meteo, Geocodio, IpGeolocation.io, Google Pollen, SunriseSunset.io, and OpenStreetMap for weather forecasting, geocoding, air quality monitoring, pollen insights, and astronomical data.
 
 **Created by**: Joshua Arzt | **Company**: Xcalibur Systems, LLC.
 
 ## Latest Updates
 
 - Package version: `1.0.2`
+- Models package dependency: `1.0.3`
 - Added `SunriseSunsetService` for sunrise and sunset data
 - Added `OpenStreetMapService` for Nominatim geocoding
+- Added `GooglePollenService` for daily pollen forecast data
 
 ## 📋 Table of Contents
 
@@ -22,6 +24,7 @@ A comprehensive .NET library providing HTTP client services for weather-related 
   - [OpenMeteoService](#openmeteoservice)
   - [GeocodioService](#geocodioservice)
   - [IpGeoService](#ipgeoservice)
+  - [GooglePollenService](#googlepollenservice)
   - [SunriseSunsetService](#sunrisesunsetservice)
   - [OpenStreetMapService](#openstreetmapservice)
 - [Usage](#-usage)
@@ -29,6 +32,7 @@ A comprehensive .NET library providing HTTP client services for weather-related 
   - [OpenMeteo Examples](#openmeteo-examples)
   - [Geocodio Examples](#geocodio-examples)
   - [IpGeo Examples](#ipgeo-examples)
+  - [GooglePollen Examples](#googlepollen-examples)
   - [SunriseSunset Examples](#sunrisesunset-examples)
   - [OpenStreetMap Examples](#openstreetmap-examples)
 - [API Endpoints](#-api-endpoints)
@@ -43,8 +47,8 @@ A comprehensive .NET library providing HTTP client services for weather-related 
 
 ## ✨ Features
 
-- **Multiple Weather Providers**: Integrated support for Open-Meteo, Geocodio, and IpGeolocation.io APIs
-- **Comprehensive Weather Data**: Access current weather, forecasts, air quality, and astronomical data
+- **Multiple Weather Providers**: Integrated support for Open-Meteo, Geocodio, IpGeolocation.io, Google Pollen, SunriseSunset.io, and OpenStreetMap APIs
+- **Comprehensive Weather Data**: Access current weather, forecasts, air quality, pollen forecasts, geocoding, and astronomical data
 - **Modern .NET 10**: Built with the latest .NET features and best practices
 - **Async/Await**: Full asynchronous API support with cancellation tokens
 - **Logging Support**: Built-in logging using Microsoft.Extensions.Logging
@@ -52,7 +56,7 @@ A comprehensive .NET library providing HTTP client services for weather-related 
 - **Error Handling**: Robust error handling with detailed logging
 - **Streaming Deserialization**: Efficient memory usage with streaming JSON deserialization
 - **Type-Safe**: Strongly-typed responses using Xcalibur.Weather.Models
-- **Flexible Provider Coverage**: Includes both API key and no-key providers for geocoding and astronomy data
+- **Flexible Provider Coverage**: Includes both API key and no-key providers for geocoding, pollen, and astronomy data
 
 ## 📦 Installation
 
@@ -114,6 +118,17 @@ The `IpGeoService` provides astronomical data for specific geographic locations.
 - Moon phase information
 - API key validation
 
+### GooglePollenService
+
+The `GooglePollenService` provides daily pollen forecast data from the Google Pollen API and requires an API key.
+
+**Key Features:**
+- Daily pollen forecast lookup by coordinates
+- Pollen type insights for grass, tree, and weed categories
+- Plant-specific pollen details and descriptions
+- Health recommendations
+- API key validation
+
 ### SunriseSunsetService
 
 The `SunriseSunsetService` provides sunrise and sunset data from SunriseSunset.io without requiring an API key.
@@ -144,6 +159,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Xcalibur.Weather.Services.WeatherProvider.OpenMeteo;
 using Xcalibur.Weather.Services.WeatherProvider.Geocodio;
 using Xcalibur.Weather.Services.WeatherProvider.IpGeo;
+using Xcalibur.Weather.Services.WeatherProvider.GooglePollen;
 using Xcalibur.Weather.Services.WeatherProvider.SunriseSunset;
 using Xcalibur.Weather.Services.WeatherProvider.OpenStreetMap;
 
@@ -154,8 +170,9 @@ var logger = loggerFactory.CreateLogger<OpenMeteoService>();
 var openMeteoService = new OpenMeteoService(httpClient, logger);
 var geocodioService = new GeocodioService(httpClient, "YOUR_GEOCODIO_API_KEY", loggerFactory.CreateLogger<GeocodioService>());
 var ipGeoService = new IpGeoService(httpClient, "YOUR_IPGEO_API_KEY", loggerFactory.CreateLogger<IpGeoService>());
+var googlePollenService = new GooglePollenService(httpClient, "YOUR_GOOGLE_POLLEN_API_KEY", loggerFactory.CreateLogger<GooglePollenService>());
 var sunriseSunsetService = new SunriseSunsetService(httpClient, loggerFactory.CreateLogger<SunriseSunsetService>());
-var openStreetMapService = new OpenStreetMapService(httpClient, NullLogger.Instance);
+var openStreetMapService = new OpenStreetMapService(httpClient, loggerFactory.CreateLogger<OpenStreetMapService>());
 ```
 
 ### OpenMeteo Examples
@@ -167,9 +184,9 @@ var currentWeather = await openMeteoService.GetCurrentWeatherAsync("40.7128", "-
 
 if (currentWeather?.Current != null)
 {
-    Console.WriteLine($"Temperature: {currentWeather.Current.Temperature2m}°C");
-    Console.WriteLine($"Humidity: {currentWeather.Current.RelativeHumidity2m}%");
-    Console.WriteLine($"Wind Speed: {currentWeather.Current.WindSpeed10m} km/h");
+    Console.WriteLine($"Temperature: {currentWeather.Current.Temperature}°C");
+    Console.WriteLine($"Humidity: {currentWeather.Current.RelativeHumidity}%");
+    Console.WriteLine($"Wind Speed: {currentWeather.Current.WindSpeed} km/h");
 }
 ```
 
@@ -181,7 +198,7 @@ var airQuality = await openMeteoService.GetCurrentAirQualityAsync("40.7128", "-7
 if (airQuality?.Current != null)
 {
     Console.WriteLine($"US AQI: {airQuality.Current.UsAqi}");
-    Console.WriteLine($"PM2.5: {airQuality.Current.Pm25}");
+    Console.WriteLine($"PM2.5: {airQuality.Current.Pm2_5}");
     Console.WriteLine($"PM10: {airQuality.Current.Pm10}");
 }
 ```
@@ -267,7 +284,7 @@ if (locations?.Results != null)
     foreach (var result in locations.Results)
     {
         Console.WriteLine($"Location: {result.FormattedAddress}");
-        Console.WriteLine($"Coordinates: {result.Location.Lat}, {result.Location.Lng}");
+        Console.WriteLine($"Coordinates: {result.Location.Latitude}, {result.Location.Longitude}");
         Console.WriteLine($"Accuracy: {result.Accuracy}");
     }
 }
@@ -298,11 +315,49 @@ var sunMoonData = await ipGeoService.GetSunMoonDataAsync("40.7128", "-74.0060");
 
 if (sunMoonData != null)
 {
-    Console.WriteLine($"Sunrise: {sunMoonData.Sunrise}");
-    Console.WriteLine($"Sunset: {sunMoonData.Sunset}");
-    Console.WriteLine($"Moonrise: {sunMoonData.Moonrise}");
-    Console.WriteLine($"Moonset: {sunMoonData.Moonset}");
-    Console.WriteLine($"Moon Phase: {sunMoonData.MoonPhase}");
+    Console.WriteLine($"Sunrise: {sunMoonData.Astronomy?.Sunrise}");
+    Console.WriteLine($"Sunset: {sunMoonData.Astronomy?.Sunset}");
+    Console.WriteLine($"Moonrise: {sunMoonData.Astronomy?.Moonrise}");
+    Console.WriteLine($"Moonset: {sunMoonData.Astronomy?.Moonset}");
+    Console.WriteLine($"Moon Phase: {sunMoonData.Astronomy?.MoonPhase}");
+}
+```
+
+### GooglePollen Examples
+
+#### Setup with API Key
+
+```csharp
+var googlePollenService = new GooglePollenService(
+    httpClient,
+    "YOUR_GOOGLE_POLLEN_API_KEY",
+    loggerFactory.CreateLogger<GooglePollenService>());
+```
+
+#### Test API Key
+
+```csharp
+var isValid = await googlePollenService.TestApiKey();
+Console.WriteLine($"API Key is {(isValid ? "valid" : "invalid")}");
+```
+
+#### Get Pollen Forecast
+
+```csharp
+var pollenForecast = await googlePollenService.GetPollenForecastAsync("39.4300996", "-77.804161");
+
+if (pollenForecast?.DailyInfo != null && pollenForecast.DailyInfo.Count > 0)
+{
+    var daily = pollenForecast.DailyInfo[0];
+    Console.WriteLine($"Region: {pollenForecast.RegionCode}");
+
+    if (daily.PollenTypeInfo != null)
+    {
+        foreach (var pollenType in daily.PollenTypeInfo)
+        {
+            Console.WriteLine($"{pollenType.DisplayName}: {pollenType.IndexInfo?.Category} ({pollenType.IndexInfo?.Value})");
+        }
+    }
 }
 ```
 
@@ -378,6 +433,11 @@ if (locations != null)
 - **Sign Up**: [IpGeolocation.io](https://ipgeolocation.io/)
 - **Documentation**: [IpGeo API Docs](https://ipgeolocation.io/documentation/astronomy-api.html)
 
+### Google Pollen API
+- **Base URL**: `https://pollen.googleapis.com/v1/forecast:lookup`
+- **API Key**: Required
+- **Documentation**: [Google Pollen API Docs](https://developers.google.com/maps/documentation/pollen)
+
 ### SunriseSunset.io
 - **Base URL**: `https://api.sunrisesunset.io/json`
 - **API Key**: Not required
@@ -393,7 +453,7 @@ if (locations != null)
 
 - **.NET 10.0**: Target framework
 - **Microsoft.Extensions.Hosting** (v10.0.7): For hosting, logging, and dependency injection abstractions
-- **Xcalibur.Weather.Models**: Shared models and DTOs for weather data
+- **Xcalibur.Weather.Models** (v1.0.3): Shared models and DTOs for weather data
 
 ## 🧪 Testing
 
@@ -410,6 +470,9 @@ dotnet test
 - `OpenMeteoServiceTests`: Tests for Open-Meteo API operations
 - `GeocodioServiceTests`: Tests for geocoding functionality and API key validation
 - `IpGeoServiceTests`: Tests for astronomical data retrieval
+- `GooglePollenServiceTests`: Tests for pollen forecast retrieval, API key validation, and request URL generation
+- `SunriseSunsetServiceTests`: Tests for sunrise and sunset data retrieval
+- `OpenStreetMapServiceTests`: Tests for geocoding and Nominatim request behavior
 
 ## 🏗️ Project Structure
 
@@ -422,6 +485,8 @@ Xcalibur.Weather.Services/
 │   │   └── GeocodioService.cs
 │   ├── IpGeo/
 │   │   └── IpGeoService.cs
+│   ├── GooglePollen/
+│   │   └── GooglePollenService.cs
 │   ├── SunriseSunset/
 │   │   └── SunriseSunsetService.cs
 │   └── OpenStreetMap/
@@ -432,7 +497,10 @@ Xcalibur.Weather.Services.Tests/
 ├── WeatherProvider/
 │   ├── OpenMeteoServiceTests.cs
 │   ├── GeocodioServiceTests.cs
-│   └── IpGeoServiceTests.cs
+│   ├── IpGeoServiceTests.cs
+│   ├── GooglePollenServiceTests.cs
+│   ├── SunriseSunsetServiceTests.cs
+│   └── OpenStreetMapServiceTests.cs
 └── Xcalibur.Weather.Services.Tests.csproj
 ```
 
@@ -477,7 +545,7 @@ catch (OperationCanceledException)
 2. **Use Dependency Injection**: Register services in your DI container for better testability
 3. **Handle Nulls**: All service methods return nullable types; always check for null responses
 4. **Monitor Logs**: Enable debug logging to troubleshoot API issues
-5. **Respect Provider Policies**: Be mindful of rate limits and usage policies for Geocodio, IpGeo, SunriseSunset.io, and OpenStreetMap Nominatim
+5. **Respect Provider Policies**: Be mindful of rate limits and usage policies for Geocodio, IpGeo, Google Pollen, SunriseSunset.io, and OpenStreetMap Nominatim
 6. **Secure API Keys**: Store API keys in secure configuration (Azure Key Vault, user secrets, etc.)
 7. **Set a User-Agent When Needed**: OpenStreetMap Nominatim requires a meaningful `User-Agent`; the service sets a default if one is not already present
 
@@ -489,6 +557,7 @@ catch (OperationCanceledException)
 dotnet user-secrets init
 dotnet user-secrets set "Geocodio:ApiKey" "YOUR_API_KEY"
 dotnet user-secrets set "IpGeo:ApiKey" "YOUR_API_KEY"
+dotnet user-secrets set "GooglePollen:ApiKey" "YOUR_API_KEY"
 ```
 
 ### appsettings.json
@@ -500,6 +569,9 @@ dotnet user-secrets set "IpGeo:ApiKey" "YOUR_API_KEY"
   },
   "IpGeo": {
     "ApiKey": "YOUR_IPGEO_API_KEY"
+  },
+  "GooglePollen": {
+    "ApiKey": "YOUR_GOOGLE_POLLEN_API_KEY"
   }
 }
 ```
@@ -509,6 +581,7 @@ dotnet user-secrets set "IpGeo:ApiKey" "YOUR_API_KEY"
 ```bash
 set GEOCODIO_API_KEY=your_key_here
 set IPGEO_API_KEY=your_key_here
+set GOOGLEPOLLEN_API_KEY=your_key_here
 ```
 
 ## 📄 License
