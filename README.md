@@ -4,7 +4,7 @@
 [![NuGet](https://img.shields.io/nuget/v/Xcalibur.Weather.Services.svg)](https://www.nuget.org/packages/Xcalibur.Weather.Services/)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE-2.0.txt)
 
-A comprehensive .NET library providing HTTP client services for weather-related APIs. Seamless integration with multiple weather data providers including Open-Meteo, Geocodio, IpGeolocation.io, Google Pollen, SunriseSunset.io, and OpenStreetMap for weather forecasting, geocoding, air quality monitoring, pollen insights, and astronomical data.
+A comprehensive .NET library providing HTTP client services for weather-related APIs. Seamless integration with multiple weather data providers including Open-Meteo, Geocodio, IpGeolocation.io, Google Pollen, Google Weather Alerts, SunriseSunset.io, and OpenStreetMap for weather forecasting, geocoding, air quality monitoring, pollen insights, weather alerts, and astronomical data.
 
 **Created by**: Joshua Arzt | **Company**: Xcalibur Systems, LLC.
 
@@ -15,6 +15,7 @@ A comprehensive .NET library providing HTTP client services for weather-related 
 - Added `SunriseSunsetService` for sunrise and sunset data
 - Added `OpenStreetMapService` for Nominatim geocoding
 - Added `GooglePollenService` for daily pollen forecast data
+- Added `GoogleWeatherAlertsService` for real-time weather alert lookups
 
 ## 📋 Table of Contents
 
@@ -25,6 +26,7 @@ A comprehensive .NET library providing HTTP client services for weather-related 
   - [GeocodioService](#geocodioservice)
   - [IpGeoService](#ipgeoservice)
   - [GooglePollenService](#googlepollenservice)
+  - [GoogleWeatherAlertsService](#googleweatheralertsservice)
   - [SunriseSunsetService](#sunrisesunsetservice)
   - [OpenStreetMapService](#openstreetmapservice)
 - [Usage](#-usage)
@@ -33,6 +35,7 @@ A comprehensive .NET library providing HTTP client services for weather-related 
   - [Geocodio Examples](#geocodio-examples)
   - [IpGeo Examples](#ipgeo-examples)
   - [GooglePollen Examples](#googlepollen-examples)
+  - [GoogleWeatherAlerts Examples](#googleweatheralerts-examples)
   - [SunriseSunset Examples](#sunrisesunset-examples)
   - [OpenStreetMap Examples](#openstreetmap-examples)
 - [API Endpoints](#-api-endpoints)
@@ -47,8 +50,8 @@ A comprehensive .NET library providing HTTP client services for weather-related 
 
 ## ✨ Features
 
-- **Multiple Weather Providers**: Integrated support for Open-Meteo, Geocodio, IpGeolocation.io, Google Pollen, SunriseSunset.io, and OpenStreetMap APIs
-- **Comprehensive Weather Data**: Access current weather, forecasts, air quality, pollen forecasts, geocoding, and astronomical data
+- **Multiple Weather Providers**: Integrated support for Open-Meteo, Geocodio, IpGeolocation.io, Google Pollen, Google Weather Alerts, SunriseSunset.io, and OpenStreetMap APIs
+- **Comprehensive Weather Data**: Access current weather, forecasts, air quality, pollen forecasts, weather alerts, geocoding, and astronomical data
 - **Modern .NET 10**: Built with the latest .NET features and best practices
 - **Async/Await**: Full asynchronous API support with cancellation tokens
 - **Logging Support**: Built-in logging using Microsoft.Extensions.Logging
@@ -129,6 +132,18 @@ The `GooglePollenService` provides daily pollen forecast data from the Google Po
 - Health recommendations
 - API key validation
 
+### GoogleWeatherAlertsService
+
+The `GoogleWeatherAlertsService` provides real-time public weather alerts from the Google Weather Alerts API and requires an API key.
+
+**Key Features:**
+- Real-time weather alert lookup by coordinates
+- Full alert details including severity, certainty, urgency, and instructions
+- Alert title and localized text
+- Data source attribution (e.g. NOAA, National Weather Service)
+- Alert lifecycle fields: start time, expiration time, timezone offset
+- API key validation
+
 ### SunriseSunsetService
 
 The `SunriseSunsetService` provides sunrise and sunset data from SunriseSunset.io without requiring an API key.
@@ -160,6 +175,7 @@ using Xcalibur.Weather.Services.WeatherProvider.OpenMeteo;
 using Xcalibur.Weather.Services.WeatherProvider.Geocodio;
 using Xcalibur.Weather.Services.WeatherProvider.IpGeo;
 using Xcalibur.Weather.Services.WeatherProvider.GooglePollen;
+using Xcalibur.Weather.Services.WeatherProvider.GoogleWeatherAlerts;
 using Xcalibur.Weather.Services.WeatherProvider.SunriseSunset;
 using Xcalibur.Weather.Services.WeatherProvider.OpenStreetMap;
 
@@ -171,6 +187,7 @@ var openMeteoService = new OpenMeteoService(httpClient, logger);
 var geocodioService = new GeocodioService(httpClient, "YOUR_GEOCODIO_API_KEY", loggerFactory.CreateLogger<GeocodioService>());
 var ipGeoService = new IpGeoService(httpClient, "YOUR_IPGEO_API_KEY", loggerFactory.CreateLogger<IpGeoService>());
 var googlePollenService = new GooglePollenService(httpClient, "YOUR_GOOGLE_POLLEN_API_KEY", loggerFactory.CreateLogger<GooglePollenService>());
+var googleWeatherAlertsService = new GoogleWeatherAlertsService(httpClient, "YOUR_GOOGLE_WEATHER_ALERTS_API_KEY", loggerFactory.CreateLogger<GoogleWeatherAlertsService>());
 var sunriseSunsetService = new SunriseSunsetService(httpClient, loggerFactory.CreateLogger<SunriseSunsetService>());
 var openStreetMapService = new OpenStreetMapService(httpClient, loggerFactory.CreateLogger<OpenStreetMapService>());
 ```
@@ -361,6 +378,49 @@ if (pollenForecast?.DailyInfo != null && pollenForecast.DailyInfo.Count > 0)
 }
 ```
 
+### GoogleWeatherAlerts Examples
+
+#### Setup with API Key
+
+```csharp
+var googleWeatherAlertsService = new GoogleWeatherAlertsService(
+    httpClient,
+    "YOUR_GOOGLE_WEATHER_ALERTS_API_KEY",
+    loggerFactory.CreateLogger<GoogleWeatherAlertsService>());
+```
+
+#### Test API Key
+
+```csharp
+var isValid = await googleWeatherAlertsService.TestApiKey();
+Console.WriteLine($"API Key is {(isValid ? "valid" : "invalid")}");
+```
+
+#### Get Weather Alerts
+
+```csharp
+var alertsResponse = await googleWeatherAlertsService.GetWeatherAlertsAsync("39.4300996", "-77.804161");
+
+if (alertsResponse?.WeatherAlerts != null && alertsResponse.WeatherAlerts.Count > 0)
+{
+    Console.WriteLine($"Region: {alertsResponse.RegionCode}");
+
+    foreach (var alert in alertsResponse.WeatherAlerts)
+    {
+        Console.WriteLine($"Alert: {alert.AlertTitle?.Text}");
+        Console.WriteLine($"Event: {alert.EventType}");
+        Console.WriteLine($"Area: {alert.AreaName}");
+        Console.WriteLine($"Severity: {alert.Severity} | Certainty: {alert.Certainty} | Urgency: {alert.Urgency}");
+        Console.WriteLine($"Valid: {alert.StartTime} – {alert.ExpirationTime}");
+        Console.WriteLine($"Source: {alert.DataSource?.Name} ({alert.DataSource?.Publisher})");
+    }
+}
+else
+{
+    Console.WriteLine("No active weather alerts.");
+}
+```
+
 ### SunriseSunset Examples
 
 #### Setup
@@ -438,6 +498,11 @@ if (locations != null)
 - **API Key**: Required
 - **Documentation**: [Google Pollen API Docs](https://developers.google.com/maps/documentation/pollen)
 
+### Google Weather Alerts API
+- **Base URL**: `https://weather.googleapis.com/v1/publicAlerts:lookup`
+- **API Key**: Required
+- **Documentation**: [Google Weather Alerts API Docs](https://developers.google.com/maps/documentation/weather)
+
 ### SunriseSunset.io
 - **Base URL**: `https://api.sunrisesunset.io/json`
 - **API Key**: Not required
@@ -471,6 +536,7 @@ dotnet test
 - `GeocodioServiceTests`: Tests for geocoding functionality and API key validation
 - `IpGeoServiceTests`: Tests for astronomical data retrieval
 - `GooglePollenServiceTests`: Tests for pollen forecast retrieval, API key validation, and request URL generation
+- `GoogleWeatherAlertsServiceTests`: Tests for weather alert retrieval, API key validation, and request URL generation
 - `SunriseSunsetServiceTests`: Tests for sunrise and sunset data retrieval
 - `OpenStreetMapServiceTests`: Tests for geocoding and Nominatim request behavior
 
@@ -487,6 +553,8 @@ Xcalibur.Weather.Services/
 │   │   └── IpGeoService.cs
 │   ├── GooglePollen/
 │   │   └── GooglePollenService.cs
+│   ├── GoogleWeatherAlerts/
+│   │   └── GoogleWeatherAlertsService.cs
 │   ├── SunriseSunset/
 │   │   └── SunriseSunsetService.cs
 │   └── OpenStreetMap/
@@ -499,6 +567,7 @@ Xcalibur.Weather.Services.Tests/
 │   ├── GeocodioServiceTests.cs
 │   ├── IpGeoServiceTests.cs
 │   ├── GooglePollenServiceTests.cs
+│   ├── GoogleWeatherAlertsServiceTests.cs
 │   ├── SunriseSunsetServiceTests.cs
 │   └── OpenStreetMapServiceTests.cs
 └── Xcalibur.Weather.Services.Tests.csproj
@@ -558,6 +627,7 @@ dotnet user-secrets init
 dotnet user-secrets set "Geocodio:ApiKey" "YOUR_API_KEY"
 dotnet user-secrets set "IpGeo:ApiKey" "YOUR_API_KEY"
 dotnet user-secrets set "GooglePollen:ApiKey" "YOUR_API_KEY"
+dotnet user-secrets set "GoogleWeatherAlerts:ApiKey" "YOUR_API_KEY"
 ```
 
 ### appsettings.json
@@ -572,6 +642,9 @@ dotnet user-secrets set "GooglePollen:ApiKey" "YOUR_API_KEY"
   },
   "GooglePollen": {
     "ApiKey": "YOUR_GOOGLE_POLLEN_API_KEY"
+  },
+  "GoogleWeatherAlerts": {
+    "ApiKey": "YOUR_GOOGLE_WEATHER_ALERTS_API_KEY"
   }
 }
 ```
@@ -582,6 +655,7 @@ dotnet user-secrets set "GooglePollen:ApiKey" "YOUR_API_KEY"
 set GEOCODIO_API_KEY=your_key_here
 set IPGEO_API_KEY=your_key_here
 set GOOGLEPOLLEN_API_KEY=your_key_here
+set GOOGLEWEATHERALERTS_API_KEY=your_key_here
 ```
 
 ## 📄 License
@@ -606,4 +680,4 @@ Xcalibur Systems, LLC
 
 ---
 
-**Note**: This library requires API keys for Geocodio and IpGeolocation.io services. Open-Meteo, SunriseSunset.io, and OpenStreetMap Nominatim do not require API keys.
+**Note**: This library requires API keys for Geocodio, IpGeolocation.io, Google Pollen, and Google Weather Alerts services. Open-Meteo, SunriseSunset.io, and OpenStreetMap Nominatim do not require API keys.
