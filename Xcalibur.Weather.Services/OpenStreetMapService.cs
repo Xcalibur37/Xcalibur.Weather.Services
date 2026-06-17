@@ -1,9 +1,10 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
-using Xcalibur.Weather.Models.WeatherProvider.OpenStreetMap;
+using Xcalibur.Weather.Models.Services.OpenStreetMap;
+using Xcalibur.Weather.Models.Services.OpenStreetMap.Response;
 
-namespace Xcalibur.Weather.Services.WeatherProvider.OpenStreetMap
+namespace Xcalibur.Weather.Services
 {
     /// <summary>
     /// Service to interact with the OpenStreetMap Nominatim geocoding API.
@@ -46,7 +47,7 @@ namespace Xcalibur.Weather.Services.WeatherProvider.OpenStreetMap
         /// <returns>
         /// A list of <see cref="OpenStreetMapResult" /> entries, or <c>null</c> on failure.
         /// </returns>
-        public async Task<List<OpenStreetMapResult>?> GetLocationsAsync(
+        public async Task<List<OpenStreetMapResultResponse>?> GetLocationsAsync(
             string query, string country, CancellationToken cancellationToken = default)
         {
             try
@@ -71,7 +72,7 @@ namespace Xcalibur.Weather.Services.WeatherProvider.OpenStreetMap
                 {
                     return await JsonSerializer.DeserializeAsync(
                         stream,
-                        OpenStreetMapJsonContext.Default.ListOpenStreetMapResult,
+                        OpenStreetMapJsonContext.Default.ListOpenStreetMapResultResponse,
                         cancellationToken);
                 }
                 catch (JsonException ex)
@@ -102,9 +103,9 @@ namespace Xcalibur.Weather.Services.WeatherProvider.OpenStreetMap
         }
     }
 
-    [JsonSerializable(typeof(List<OpenStreetMapResult>))]
-    [JsonSerializable(typeof(OpenStreetMapResult))]
-    [JsonSerializable(typeof(OpenStreetMapAddress))]
+    [JsonSerializable(typeof(List<OpenStreetMapResultResponse>))]
+    [JsonSerializable(typeof(OpenStreetMapResultResponse))]
+    [JsonSerializable(typeof(OpenStreetMapAddressResponse))]
     [JsonSourceGenerationOptions(PropertyNameCaseInsensitive = true)]
     internal partial class OpenStreetMapJsonContext : JsonSerializerContext { }
 }

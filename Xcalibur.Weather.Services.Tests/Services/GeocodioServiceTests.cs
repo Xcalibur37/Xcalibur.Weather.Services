@@ -1,16 +1,16 @@
-﻿using System.Net;
+using System.Net;
 using System.Text;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xcalibur.Weather.Models.Testing;
-using Xcalibur.Weather.Services.WeatherProvider.IpGeo;
+using Xcalibur.Weather.Services;
 
-namespace Xcalibur.Weather.Services.Tests.WeatherProvider
+namespace Xcalibur.Weather.Services.Tests.Services
 {
     /// <summary>
-    /// Tests for <see cref="IpGeoService"/>.
+    /// Tests for <see cref="GeocodioService"/>.
     /// </summary>
-    public sealed class IpGeoServiceTests
+    public sealed class GeocodioServiceTests
     {
         [Fact]
         public async Task TestApiKey_ReturnsTrue_WhenHttpOk()
@@ -24,7 +24,7 @@ namespace Xcalibur.Weather.Services.Tests.WeatherProvider
             using var http = new HttpClient(new DelegatingHandlerStub(response));
             http.Timeout = TimeSpan.FromSeconds(30);
 
-            var service = new IpGeoService(http, "DUMMY_KEY", NullLogger<IpGeoService>.Instance);
+            var service = new GeocodioService(http, "DUMMY_TOKEN", NullLogger<GeocodioService>.Instance);
 
             // Act
             var result = await service.TestApiKey(CancellationToken.None);
@@ -34,18 +34,18 @@ namespace Xcalibur.Weather.Services.Tests.WeatherProvider
         }
 
         [Fact]
-        public async Task TestApiKey_ReturnsFalse_WhenUnauthorized()
+        public async Task TestApiKey_ReturnsFalse_WhenForbidden()
         {
             // Arrange
-            var response = new HttpResponseMessage(HttpStatusCode.Unauthorized)
+            var response = new HttpResponseMessage(HttpStatusCode.Forbidden)
             {
-                Content = new StringContent("unauthorized")
+                Content = new StringContent("forbidden")
             };
 
             using var http = new HttpClient(new DelegatingHandlerStub(response));
             http.Timeout = TimeSpan.FromSeconds(30);
 
-            var service = new IpGeoService(http, "DUMMY_KEY", NullLogger<IpGeoService>.Instance);
+            var service = new GeocodioService(http, "DUMMY_TOKEN", NullLogger<GeocodioService>.Instance);
 
             // Act
             var result = await service.TestApiKey(CancellationToken.None);
@@ -55,23 +55,24 @@ namespace Xcalibur.Weather.Services.Tests.WeatherProvider
         }
 
         [Fact]
-        public async Task GetSunMoonDataAsync_ReturnsDeserializedResponse_WhenHttpOk()
+        public async Task GetLocationsAsync_ReturnsDeserializedResponse_WhenHttpOk()
         {
-            // Arrange - valid Astronomy JSON
+            // Arrange - valid Geocodio JSON with one result
             var json =
                 """
                 {
-                  "location": { "latitude": "12.34", "longitude": "56.78" },
-                  "astronomy": {
-                    "sunrise": "06:01",
-                    "sunset": "18:02",
-                    "day_length": "12:01:00",
-                    "moonrise": "20:10",
-                    "moonset": "06:05",
-                    "moon_phase": "Full Moon",
-                    "moon_illumination_percentage": "99",
-                    "moon_angle": 12.34
-                  }
+                  "results": [
+                    {
+                      "address_components": {
+                        "city": "TestCity",
+                        "county": "TestCounty",
+                        "state": "TS",
+                        "zip": "99999",
+                        "country": "US"
+                      },
+                      "location": { "lat": 12.34, "lng": 56.78 }
+                    }
+                  ]
                 }
                 """;
 
@@ -83,28 +84,25 @@ namespace Xcalibur.Weather.Services.Tests.WeatherProvider
             using var http = new HttpClient(new DelegatingHandlerStub(response));
             http.Timeout = TimeSpan.FromSeconds(30);
 
-            var service = new IpGeoService(http, "DUMMY_KEY", NullLogger<IpGeoService>.Instance);
+            var service = new GeocodioService(http, "DUMMY_TOKEN", NullLogger<GeocodioService>.Instance);
 
             // Act
-            var result = await service.GetSunMoonDataAsync("12.34", "56.78", CancellationToken.None);
+            var result = await service.GetLocationsAsync("query", "US", CancellationToken.None);
 
             // Assert
             result.Should().NotBeNull();
-            result.Astronomy.Should().NotBeNull();
-
-            var astro = result.Astronomy!;
-            astro.Sunrise.Should().Be("06:01");
-            astro.Sunset.Should().Be("18:02");
-            astro.DayLength.Should().Be("12:01:00");
-            astro.Moonrise.Should().Be("20:10");
-            astro.Moonset.Should().Be("06:05");
-            astro.MoonPhase.Should().Be("Full Moon");
-            astro.MoonIlluminationPercentage.Should().Be("99");
-            astro.MoonAngle.Should().Be(12.34);
+            result.Results.Should().NotBeNull();
+            result.Results.Should().HaveCount(1);
+            var r = result.Results![0];
+            r.AddressComponents.Should().NotBeNull();
+            r.AddressComponents!.City.Should().Be("TestCity");
+            r.Location.Should().NotBeNull();
+            r.Location!.Latitude.Should().Be((decimal)12.34);
+            r.Location.Longitude.Should().Be((decimal)56.78);
         }
 
         [Fact]
-        public async Task GetSunMoonDataAsync_ReturnsNull_WhenStatusNotSuccess()
+        public async Task GetLocationsAsync_ReturnsNull_WhenStatusNotSuccess()
         {
             // Arrange - non-success status
             var response = new HttpResponseMessage(HttpStatusCode.BadRequest)
@@ -115,17 +113,17 @@ namespace Xcalibur.Weather.Services.Tests.WeatherProvider
             using var http = new HttpClient(new DelegatingHandlerStub(response));
             http.Timeout = TimeSpan.FromSeconds(30);
 
-            var service = new IpGeoService(http, "DUMMY_KEY", NullLogger<IpGeoService>.Instance);
+            var service = new GeocodioService(http, "DUMMY_TOKEN", NullLogger<GeocodioService>.Instance);
 
             // Act
-            var result = await service.GetSunMoonDataAsync("12.34", "56.78", CancellationToken.None);
+            var result = await service.GetLocationsAsync("query", "US", CancellationToken.None);
 
             // Assert
             result.Should().BeNull();
         }
 
         [Fact]
-        public async Task GetSunMoonDataAsync_ReturnsNull_WhenResponseInvalidJson()
+        public async Task GetLocationsAsync_ReturnsNull_WhenResponseInvalidJson()
         {
             // Arrange - invalid JSON content
             var response = new HttpResponseMessage(HttpStatusCode.OK)
@@ -136,10 +134,10 @@ namespace Xcalibur.Weather.Services.Tests.WeatherProvider
             using var http = new HttpClient(new DelegatingHandlerStub(response));
             http.Timeout = TimeSpan.FromSeconds(30);
 
-            var service = new IpGeoService(http, "DUMMY_KEY", NullLogger<IpGeoService>.Instance);
+            var service = new GeocodioService(http, "DUMMY_TOKEN", NullLogger<GeocodioService>.Instance);
 
             // Act
-            var result = await service.GetSunMoonDataAsync("12.34", "56.78", CancellationToken.None);
+            var result = await service.GetLocationsAsync("query", "US", CancellationToken.None);
 
             // Assert - invalid JSON should be handled and return null
             result.Should().BeNull();

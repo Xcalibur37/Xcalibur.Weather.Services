@@ -1,9 +1,9 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
-using Xcalibur.Weather.Models.WeatherProvider.SunriseSunset;
+using Xcalibur.Weather.Models.Services.Astronomy.Response;
 
-namespace Xcalibur.Weather.Services.WeatherProvider.SunriseSunset
+namespace Xcalibur.Weather.Services
 {
     /// <summary>
     /// Service to interact with the SunriseSunset.io JSON API.
@@ -92,7 +92,7 @@ namespace Xcalibur.Weather.Services.WeatherProvider.SunriseSunset
     }
 
     /// <summary>
-    /// Source-generated JSON serializer context for <see cref="SunriseSunsetResponse"/>.
+    /// Source-generated JSON serializer context for <see cref="SunriseSunsetJsonContext.SunriseSunsetResponse"/>.
     /// </summary>
     [JsonSerializable(typeof(SunriseSunsetResponse))]
     [JsonSourceGenerationOptions(PropertyNameCaseInsensitive = true)]

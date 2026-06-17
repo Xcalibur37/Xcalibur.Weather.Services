@@ -3,9 +3,9 @@ using System.Text;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xcalibur.Weather.Models.Testing;
-using Xcalibur.Weather.Services.WeatherProvider.SunriseSunset;
+using Xcalibur.Weather.Services;
 
-namespace Xcalibur.Weather.Services.Tests.WeatherProvider
+namespace Xcalibur.Weather.Services.Tests.Services
 {
     /// <summary>
     /// Tests for <see cref="SunriseSunsetService"/>.

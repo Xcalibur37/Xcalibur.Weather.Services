@@ -1,12 +1,12 @@
-﻿using System.Net;
+using System.Net;
 using System.Text;
 using System.Text.Json;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xcalibur.Weather.Models.Testing;
-using Xcalibur.Weather.Services.WeatherProvider.OpenMeteo;
+using Xcalibur.Weather.Services;
 
-namespace Xcalibur.Weather.Services.Tests.WeatherProvider
+namespace Xcalibur.Weather.Services.Tests.Services
 {
     /// <summary>
     /// Tests for <see cref="OpenMeteoService"/>.
@@ -22,9 +22,33 @@ namespace Xcalibur.Weather.Services.Tests.WeatherProvider
                 {
                   "latitude": 12.34,
                   "longitude": 56.78,
+                  "generationtime_ms": 0.5,
+                  "utc_offset_seconds": 0,
+                  "timezone": "UTC",
+                  "timezone_abbreviation": "UTC",
+                  "elevation": 50.0,
+                  "current_units": {
+                    "time": "iso8601",
+                    "interval": "seconds",
+                    "temperature_2m": "°C",
+                    "relative_humidity_2m": "%",
+                    "apparent_temperature": "°C",
+                    "precipitation": "mm",
+                    "rain": "mm",
+                    "showers": "mm",
+                    "snowfall": "cm",
+                    "weather_code": "wmo code",
+                    "cloud_cover": "%",
+                    "pressure_msl": "hPa",
+                    "surface_pressure": "hPa",
+                    "wind_speed_10m": "km/h",
+                    "wind_direction_10m": "°",
+                    "wind_gusts_10m": "km/h",
+                    "is_day": ""
+                  },
                   "current": {
                     "time": "2023-01-01T12:00",
-                    "interval": 1,
+                    "interval": 900,
                     "temperature_2m": 15.5,
                     "relative_humidity_2m": 55.0,
                     "apparent_temperature": 15.0,
@@ -39,7 +63,7 @@ namespace Xcalibur.Weather.Services.Tests.WeatherProvider
                     "wind_speed_10m": 3.3,
                     "wind_direction_10m": 180,
                     "wind_gusts_10m": 5.0,
-                    "is_day": true
+                    "is_day": 1
                   }
                 }
                 """;
@@ -61,7 +85,7 @@ namespace Xcalibur.Weather.Services.Tests.WeatherProvider
             result.Current.Should().NotBeNull();
             result.Current!.Temperature.Should().BeApproximately(15.5, 1e-6);
             result.Current.RelativeHumidity.Should().BeApproximately(55.0, 1e-6);
-            result.Current.WeatherCode.Should().Be(0);
+            result.Current.WeatherCodeValue.Should().Be("Clear sky");
         }
 
         [Fact]
@@ -212,7 +236,7 @@ namespace Xcalibur.Weather.Services.Tests.WeatherProvider
         }
 
         [Fact]
-        public async Task GetYesterdayForecastAsync_DeserializesHourly_WhenHttpOk()
+        public async Task GetYesterdayHourlyForecastAsync_DeserializesHourly_WhenHttpOk()
         {
             // Arrange - hourly payload for yesterday endpoint
             var now = DateTime.Now.ToString("yyyy-MM-ddTHH:00");
@@ -241,7 +265,7 @@ namespace Xcalibur.Weather.Services.Tests.WeatherProvider
             var service = new OpenMeteoService(http, NullLogger<OpenMeteoService>.Instance);
 
             // Act
-            var result = await service.GetYesterdayForecastAsync("12.34", "56.78", "2023-01-01", CancellationToken.None);
+            var result = await service.GetYesterdayHourlyForecastAsync("12.34", "56.78", "2023-01-01", CancellationToken.None);
 
             // Assert
             result.Should().NotBeNull();
@@ -264,7 +288,7 @@ namespace Xcalibur.Weather.Services.Tests.WeatherProvider
             (await service.GetCurrentAirQualityAsync("1", "2", CancellationToken.None)).Should().BeNull();
             (await service.GetHourlyForecastAsync("1", "2", CancellationToken.None)).Should().BeNull();
             (await service.GetDailyForecastAsync("1", "2", 1, CancellationToken.None)).Should().BeNull();
-            (await service.GetYesterdayForecastAsync("1", "2", "2023-01-01", CancellationToken.None)).Should().BeNull();
+            (await service.GetYesterdayHourlyForecastAsync("1", "2", "2023-01-01", CancellationToken.None)).Should().BeNull();
         }
 
         [Fact]

@@ -1,12 +1,12 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
-using Xcalibur.Weather.Models.WeatherProvider.OpenMeteo.CurrentAirQuality;
-using Xcalibur.Weather.Models.WeatherProvider.OpenMeteo.CurrentWeather;
-using Xcalibur.Weather.Models.WeatherProvider.OpenMeteo.DailyWeather;
-using Xcalibur.Weather.Models.WeatherProvider.OpenMeteo.HourlyWeather;
+using Xcalibur.Weather.Models.Services.OpenMeteo.CurrentAirQuality;
+using Xcalibur.Weather.Models.Services.OpenMeteo.CurrentWeather;
+using Xcalibur.Weather.Models.Services.OpenMeteo.DailyWeather;
+using Xcalibur.Weather.Models.Services.OpenMeteo.HourlyWeather;
 
-namespace Xcalibur.Weather.Services.WeatherProvider.OpenMeteo
+namespace Xcalibur.Weather.Services
 {
     /// <summary>
     /// Service to interact with the Open‑Meteo weather API.
@@ -18,29 +18,32 @@ namespace Xcalibur.Weather.Services.WeatherProvider.OpenMeteo
         private readonly HttpClient _http;
         private readonly ILogger _logger;
 
+        // Base URLs with placeholders for latitude, longitude, and other parameters.
+        private const string BaseForecastUrl = "https://api.open-meteo.com/v1/forecast?latitude={0}&longitude={1}&timezone=auto";
+        private const string BaseHistoricalUrl = "https://archive-api.open-meteo.com/v1/archive?latitude={0}&longitude={1}&start_date={2}&end_date={3}&timezone=auto";
+        private const string BaseAqiUrl = "https://air-quality-api.open-meteo.com/v1/air-quality?latitude={0}&longitude={1}&timezone=auto";
+
         // Use source-generated context for AOT and trimming safety
         private const string CurrentForecastUrl = 
-            "https://api.open-meteo.com/v1/forecast?latitude={0}&longitude={1}" +
-            "&timezone=auto&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation," +
-            "rain,showers,snowfall,weather_code,cloud_cover,pressure_msl,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m";
-        private const string CurrentAqiUrl = 
-            "https://air-quality-api.open-meteo.com/v1/air-quality?latitude={0}&longitude={1}" +
-            "&timezone=auto&current=us_aqi,pm10,carbon_monoxide,pm2_5,nitrogen_dioxide,sulphur_dioxide," +
-            "ozone,aerosol_optical_depth,dust,uv_index,uv_index_clear_sky,ammonia,alder_pollen,birch_pollen," +
-            "grass_pollen,mugwort_pollen,olive_pollen,ragweed_pollen";
+            $"{BaseForecastUrl}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation," +
+            "rain,showers,snowfall,weather_code,cloud_cover,pressure_msl,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m,is_day";
         private const string HourlyForecast48HoursUrl = 
-            "https://api.open-meteo.com/v1/forecast?latitude={0}&longitude={1}" +
-            "&timezone=auto&hourly=temperature_2m,relative_humidity_2m,dew_point_2m,apparent_temperature," +
+            $"{BaseForecastUrl}&hourly=temperature_2m,relative_humidity_2m,dew_point_2m,apparent_temperature," +
             "precipitation_probability,precipitation,rain,showers,snowfall,snow_depth,weather_code,pressure_msl," +
-            "surface_pressure,cloud_cover,visibility,wind_speed_10m,wind_direction_10m,wind_gusts_10m&forecast_days=2";
+            "surface_pressure,cloud_cover,visibility,wind_speed_10m,wind_direction_10m,wind_gusts_10m,uv_index,is_day&forecast_days=2";
         private const string DailyForecastUrl = 
-            "https://api.open-meteo.com/v1/forecast?latitude={0}&longitude={1}" +
-            "&timezone=auto&daily=temperature_2m_min,temperature_2m_max,weather_code,sunrise,sunset,daylight_duration," +
+            $"{BaseForecastUrl}&daily=temperature_2m_min,temperature_2m_max,weather_code,sunrise,sunset,daylight_duration," +
             "sunshine_duration,rain_sum,showers_sum,snowfall_sum,precipitation_sum,precipitation_hours,precipitation_probability_max," +
             "wind_speed_10m_max,wind_gusts_10m_max,uv_index_max&forecast_days={2}";
-        private const string YesterdayForecastUrl = 
-            "https://archive-api.open-meteo.com/v1/archive?latitude={0}&longitude={1}" +
-            "&timezone=auto&start_date={2}&end_date={2}&hourly=temperature_2m,relative_humidity_2m,pressure_msl";
+        private const string YesterdayForecastHourlyUrl = 
+            $"{BaseHistoricalUrl}&hourly=temperature_2m,relative_humidity_2m,pressure_msl";
+        private const string YesterdayForecastDailyUrl =
+            $"{BaseHistoricalUrl}&daily=temperature_2m_min,temperature_2m_max,weather_code," +
+            "sunrise,sunset,daylight_duration,sunshine_duration,rain_sum,showers_sum,snowfall_sum,precipitation_sum," +
+            "precipitation_hours,wind_speed_10m_max,wind_gusts_10m_max";
+        private const string CurrentAqiUrl =
+            $"{BaseAqiUrl}&current=us_aqi,pm10,carbon_monoxide,pm2_5,nitrogen_dioxide,sulphur_dioxide," +
+            "ozone,aerosol_optical_depth,dust,uv_index,uv_index_clear_sky,ammonia";
 
         #endregion
 
@@ -75,9 +78,11 @@ namespace Xcalibur.Weather.Services.WeatherProvider.OpenMeteo
                 var url = string.Format(CurrentForecastUrl, latitude, longitude);
                 _logger.LogDebug("Fetching current weather for ({Latitude}, {Longitude})", latitude, longitude);
 
+                // Create and send HTTP request
                 using var request = new HttpRequestMessage(HttpMethod.Get, url);
                 using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
 
+                // Check for non-success status code
                 if (!response.IsSuccessStatusCode)
                 {
                     _logger.LogWarning("OpenMeteo API returned {StatusCode} for current weather at ({Latitude}, {Longitude})", 
@@ -107,56 +112,6 @@ namespace Xcalibur.Weather.Services.WeatherProvider.OpenMeteo
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Unexpected error fetching current weather for ({Latitude}, {Longitude})", latitude, longitude);
-                return null;
-            }
-        }
-
-        /// <summary>
-        /// Gets the current air quality data asynchronously.
-        /// </summary>
-        /// <param name="latitude">The latitude.</param>
-        /// <param name="longitude">The longitude.</param>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns></returns>
-        public async Task<AirQualityResponse?> GetCurrentAirQualityAsync(string latitude, string longitude, CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                var url = string.Format(CurrentAqiUrl, latitude, longitude);
-                _logger.LogDebug("Fetching air quality data for ({Latitude}, {Longitude})", latitude, longitude);
-
-                using var request = new HttpRequestMessage(HttpMethod.Get, url);
-                using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-
-                if (!response.IsSuccessStatusCode)
-                {
-                    _logger.LogWarning("OpenMeteo API returned {StatusCode} for air quality at ({Latitude}, {Longitude})", 
-                        response.StatusCode, latitude, longitude);
-                    return null;
-                }
-
-                // Simple streaming deserialize
-                await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-                return await JsonSerializer.DeserializeAsync<AirQualityResponse?>(stream, OpenMeteoJsonContext.Default.AirQualityResponse, cancellationToken);
-            }
-            catch (HttpRequestException ex)
-            {
-                _logger.LogError(ex, "HTTP request failed while fetching air quality for ({Latitude}, {Longitude})", latitude, longitude);
-                return null;
-            }
-            catch (TaskCanceledException ex)
-            {
-                _logger.LogWarning(ex, "Air quality request timed out or was cancelled for ({Latitude}, {Longitude})", latitude, longitude);
-                return null;
-            }
-            catch (JsonException ex)
-            {
-                _logger.LogError(ex, "Failed to deserialize air quality response for ({Latitude}, {Longitude})", latitude, longitude);
-                return null;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Unexpected error fetching air quality for ({Latitude}, {Longitude})", latitude, longitude);
                 return null;
             }
         }
@@ -211,6 +166,63 @@ namespace Xcalibur.Weather.Services.WeatherProvider.OpenMeteo
         }
 
         /// <summary>
+        /// Gets yesterday's hourly forecast asynchronous.
+        /// </summary>
+        /// <param name="latitude">The latitude.</param>
+        /// <param name="longitude">The longitude.</param>
+        /// <param name="dateValue">The date value.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        public async Task<HourlyWeatherResponse?> GetYesterdayHourlyForecastAsync(string latitude, string longitude, string dateValue, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var url = string.Format(YesterdayForecastHourlyUrl, latitude, longitude, dateValue, dateValue);
+                _logger.LogDebug("Fetching yesterday's hourly forecast for ({Latitude}, {Longitude}) on {Date}", latitude, longitude, dateValue);
+
+                // Create and send HTTP request
+                using var request = new HttpRequestMessage(HttpMethod.Get, url);
+                using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+
+                // Check for non-success status code
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning("OpenMeteo API returned {StatusCode} for yesterday's hourly forecast at ({Latitude}, {Longitude}) on {Date}",
+                        response.StatusCode, latitude, longitude, dateValue);
+                    return null;
+                }
+
+                // Simple streaming deserialize
+                await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+                return await JsonSerializer.DeserializeAsync<HourlyWeatherResponse?>(stream, OpenMeteoJsonContext.Default.HourlyWeatherResponse, cancellationToken);
+            }
+            catch (HttpRequestException ex)
+            {
+                _logger.LogError(ex, "HTTP request failed while fetching yesterday's hourly forecast for ({Latitude}, {Longitude}) on {Date}",
+                    latitude, longitude, dateValue);
+                return null;
+            }
+            catch (TaskCanceledException ex)
+            {
+                _logger.LogWarning(ex, "Yesterday's hourly forecast request timed out or was cancelled for ({Latitude}, {Longitude}) on {Date}",
+                    latitude, longitude, dateValue);
+                return null;
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError(ex, "Failed to deserialize yesterday's hourly forecast response for ({Latitude}, {Longitude}) on {Date}",
+                    latitude, longitude, dateValue);
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error fetching yesterday's hourly forecast for ({Latitude}, {Longitude}) on {Date}",
+                    latitude, longitude, dateValue);
+                return null;
+            }
+        }
+
+        /// <summary>
         /// Gets daily forecast for the given coordinates and number of days.
         /// Returns null on non-success HTTP response.
         /// </summary>
@@ -260,19 +272,20 @@ namespace Xcalibur.Weather.Services.WeatherProvider.OpenMeteo
         }
 
         /// <summary>
-        /// Gets yesterday's forecast asynchronous.
+        /// Gets yesterday's hourly forecast asynchronous.
         /// </summary>
         /// <param name="latitude">The latitude.</param>
         /// <param name="longitude">The longitude.</param>
-        /// <param name="dateValue">The date value.</param>
+        /// <param name="startDateValue">The start date value.</param>
+        /// <param name="endDateValue">The end date value.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        public async Task<HourlyWeatherResponse?> GetYesterdayForecastAsync(string latitude, string longitude, string dateValue, CancellationToken cancellationToken = default)
+        public async Task<DailyWeatherResponse?> GetYesterdayDailyForecastAsync(string latitude, string longitude, string startDateValue, string endDateValue, CancellationToken cancellationToken = default)
         {
             try
             {
-                var url = string.Format(YesterdayForecastUrl, latitude, longitude, dateValue);
-                _logger.LogDebug("Fetching yesterday's forecast for ({Latitude}, {Longitude}) on {Date}", latitude, longitude, dateValue);
+                var url = string.Format(YesterdayForecastDailyUrl, latitude, longitude, startDateValue, endDateValue);
+                _logger.LogDebug("Fetching yesterday's daily forecast for ({Latitude}, {Longitude}) from {StartDate} to {EndDate}", latitude, longitude, startDateValue, endDateValue);
 
                 // Create and send HTTP request
                 using var request = new HttpRequestMessage(HttpMethod.Get, url);
@@ -281,37 +294,89 @@ namespace Xcalibur.Weather.Services.WeatherProvider.OpenMeteo
                 // Check for non-success status code
                 if (!response.IsSuccessStatusCode)
                 {
-                    _logger.LogWarning("OpenMeteo API returned {StatusCode} for yesterday's forecast at ({Latitude}, {Longitude}) on {Date}", 
-                        response.StatusCode, latitude, longitude, dateValue);
+                    _logger.LogWarning("OpenMeteo API returned {StatusCode} for yesterday's daily forecast at ({Latitude}, {Longitude}) from {StartDate} to {EndDate}",
+                        response.StatusCode, latitude, longitude, startDateValue, endDateValue);
                     return null;
                 }
 
                 // Simple streaming deserialize
                 await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-                return await JsonSerializer.DeserializeAsync<HourlyWeatherResponse?>(stream, OpenMeteoJsonContext.Default.HourlyWeatherResponse, cancellationToken);
+                return await JsonSerializer.DeserializeAsync<DailyWeatherResponse?>(stream, OpenMeteoJsonContext.Default.DailyWeatherResponse, cancellationToken);
             }
             catch (HttpRequestException ex)
             {
-                _logger.LogError(ex, "HTTP request failed while fetching yesterday's forecast for ({Latitude}, {Longitude}) on {Date}", 
-                    latitude, longitude, dateValue);
+                _logger.LogError(ex, "HTTP request failed while fetching yesterday's daily forecast for ({Latitude}, {Longitude}) from {StartDate} to {EndDate}",
+                    latitude, longitude, startDateValue, endDateValue);
                 return null;
             }
             catch (TaskCanceledException ex)
             {
-                _logger.LogWarning(ex, "Yesterday's forecast request timed out or was cancelled for ({Latitude}, {Longitude}) on {Date}", 
-                    latitude, longitude, dateValue);
+                _logger.LogWarning(ex, "Yesterday's daily forecast request timed out or was cancelled for ({Latitude}, {Longitude}) from {StartDate} to {EndDate}",
+                    latitude, longitude, startDateValue, endDateValue);
                 return null;
             }
             catch (JsonException ex)
             {
-                _logger.LogError(ex, "Failed to deserialize yesterday's forecast response for ({Latitude}, {Longitude}) on {Date}", 
-                    latitude, longitude, dateValue);
+                _logger.LogError(ex, "Failed to deserialize yesterday's daily forecast response for ({Latitude}, {Longitude}) from {StartDate} to {EndDate}",
+                    latitude, longitude, startDateValue, endDateValue);
                 return null;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Unexpected error fetching yesterday's forecast for ({Latitude}, {Longitude}) on {Date}", 
-                    latitude, longitude, dateValue);
+                _logger.LogError(ex, "Unexpected error fetching yesterday's daily forecast for ({Latitude}, {Longitude}) from {StartDate} to {EndDate}",
+                    latitude, longitude, startDateValue, endDateValue);
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Gets the current air quality data asynchronously.
+        /// </summary>
+        /// <param name="latitude">The latitude.</param>
+        /// <param name="longitude">The longitude.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        public async Task<AirQualityResponse?> GetCurrentAirQualityAsync(string latitude, string longitude, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var url = string.Format(CurrentAqiUrl, latitude, longitude);
+                _logger.LogDebug("Fetching air quality data for ({Latitude}, {Longitude})", latitude, longitude);
+
+                // Create and send HTTP request
+                using var request = new HttpRequestMessage(HttpMethod.Get, url);
+                using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+
+                // Check for non-success status code
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning("OpenMeteo API returned {StatusCode} for air quality at ({Latitude}, {Longitude})",
+                        response.StatusCode, latitude, longitude);
+                    return null;
+                }
+
+                // Simple streaming deserialize
+                await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+                return await JsonSerializer.DeserializeAsync<AirQualityResponse?>(stream, OpenMeteoJsonContext.Default.AirQualityResponse, cancellationToken);
+            }
+            catch (HttpRequestException ex)
+            {
+                _logger.LogError(ex, "HTTP request failed while fetching air quality for ({Latitude}, {Longitude})", latitude, longitude);
+                return null;
+            }
+            catch (TaskCanceledException ex)
+            {
+                _logger.LogWarning(ex, "Air quality request timed out or was cancelled for ({Latitude}, {Longitude})", latitude, longitude);
+                return null;
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError(ex, "Failed to deserialize air quality response for ({Latitude}, {Longitude})", latitude, longitude);
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error fetching air quality for ({Latitude}, {Longitude})", latitude, longitude);
                 return null;
             }
         }
@@ -325,9 +390,9 @@ namespace Xcalibur.Weather.Services.WeatherProvider.OpenMeteo
     /// <seealso cref="System.Text.Json.Serialization.JsonSerializerContext" />
     /// <seealso cref="System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver" />
     [JsonSerializable(typeof(CurrentWeatherResponse))]
-    [JsonSerializable(typeof(AirQualityResponse))]
     [JsonSerializable(typeof(HourlyWeatherResponse))]
     [JsonSerializable(typeof(DailyWeatherResponse))]
+    [JsonSerializable(typeof(AirQualityResponse))]
     [JsonSourceGenerationOptions(PropertyNameCaseInsensitive = true)]
     internal partial class OpenMeteoJsonContext : JsonSerializerContext { }
 }

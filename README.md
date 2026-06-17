@@ -4,18 +4,18 @@
 [![NuGet](https://img.shields.io/nuget/v/Xcalibur.Weather.Services.svg)](https://www.nuget.org/packages/Xcalibur.Weather.Services/)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE-2.0.txt)
 
-A comprehensive .NET library providing HTTP client services for weather-related APIs. Seamless integration with multiple weather data providers including Open-Meteo, Geocodio, IpGeolocation.io, Google Pollen, Google Weather Alerts, SunriseSunset.io, and OpenStreetMap for weather forecasting, geocoding, air quality monitoring, pollen insights, weather alerts, and astronomical data.
+A comprehensive .NET library providing HTTP client services for weather-related APIs. Seamless integration with multiple weather data providers including Open-Meteo, Geocodio, IpGeolocation.io, Atmospore, SunriseSunset.io, and OpenStreetMap for weather forecasting, geocoding, air quality monitoring, pollen insights, multi-source weather alerts, and astronomical data.
 
 **Created by**: Joshua Arzt | **Company**: Xcalibur Systems, LLC.
 
 ## Latest Updates
 
-- Package version: `1.0.2`
-- Models package dependency: `1.0.3`
-- Added `SunriseSunsetService` for sunrise and sunset data
-- Added `OpenStreetMapService` for Nominatim geocoding
-- Added `GooglePollenService` for daily pollen forecast data
-- Added `GoogleWeatherAlertsService` for real-time weather alert lookups
+- Package version: `1.0.6`
+- Models package dependency: `1.0.6`
+- Added `AtmosporeService` for pollen forecast data from Atmospore API
+- Added `WeatherAlertService` for multi-provider weather alerts (Meteoalarm, NWS, GDACS, Environment Canada, BOM Australia, EMSC, DWD)
+- Services moved to flat namespace structure (`Xcalibur.Weather.Services`)
+- All 44 unit tests passing with comprehensive coverage
 
 ## 📋 Table of Contents
 
@@ -25,8 +25,8 @@ A comprehensive .NET library providing HTTP client services for weather-related 
   - [OpenMeteoService](#openmeteoservice)
   - [GeocodioService](#geocodioservice)
   - [IpGeoService](#ipgeoservice)
-  - [GooglePollenService](#googlepollenservice)
-  - [GoogleWeatherAlertsService](#googleweatheralertsservice)
+  - [AtmosporeService](#atmosporeservice)
+  - [WeatherAlertService](#weatheralertservice)
   - [SunriseSunsetService](#sunrisesunsetservice)
   - [OpenStreetMapService](#openstreetmapservice)
 - [Usage](#-usage)
@@ -34,8 +34,8 @@ A comprehensive .NET library providing HTTP client services for weather-related 
   - [OpenMeteo Examples](#openmeteo-examples)
   - [Geocodio Examples](#geocodio-examples)
   - [IpGeo Examples](#ipgeo-examples)
-  - [GooglePollen Examples](#googlepollen-examples)
-  - [GoogleWeatherAlerts Examples](#googleweatheralerts-examples)
+  - [Atmospore Examples](#atmospore-examples)
+  - [WeatherAlert Examples](#weatheralert-examples)
   - [SunriseSunset Examples](#sunrisesunset-examples)
   - [OpenStreetMap Examples](#openstreetmap-examples)
 - [API Endpoints](#-api-endpoints)
@@ -50,7 +50,8 @@ A comprehensive .NET library providing HTTP client services for weather-related 
 
 ## ✨ Features
 
-- **Multiple Weather Providers**: Integrated support for Open-Meteo, Geocodio, IpGeolocation.io, Google Pollen, Google Weather Alerts, SunriseSunset.io, and OpenStreetMap APIs
+- **Multiple Weather Providers**: Integrated support for Open-Meteo, Geocodio, IpGeolocation.io, Atmospore, SunriseSunset.io, and OpenStreetMap APIs
+- **Multi-Source Weather Alerts**: Aggregated weather alerts from Meteoalarm, NWS, GDACS, Environment Canada, BOM Australia, EMSC, and DWD
 - **Comprehensive Weather Data**: Access current weather, forecasts, air quality, pollen forecasts, weather alerts, geocoding, and astronomical data
 - **Modern .NET 10**: Built with the latest .NET features and best practices
 - **Async/Await**: Full asynchronous API support with cancellation tokens
@@ -121,28 +122,32 @@ The `IpGeoService` provides astronomical data for specific geographic locations.
 - Moon phase information
 - API key validation
 
-### GooglePollenService
+### AtmosporeService
 
-The `GooglePollenService` provides daily pollen forecast data from the Google Pollen API and requires an API key.
-
-**Key Features:**
-- Daily pollen forecast lookup by coordinates
-- Pollen type insights for grass, tree, and weed categories
-- Plant-specific pollen details and descriptions
-- Health recommendations
-- API key validation
-
-### GoogleWeatherAlertsService
-
-The `GoogleWeatherAlertsService` provides real-time public weather alerts from the Google Weather Alerts API and requires an API key.
+The `AtmosporeService` provides pollen forecast data from the Atmospore API (pollenapi.com) and requires an API key.
 
 **Key Features:**
-- Real-time weather alert lookup by coordinates
-- Full alert details including severity, certainty, urgency, and instructions
-- Alert title and localized text
-- Data source attribution (e.g. NOAA, National Weather Service)
-- Alert lifecycle fields: start time, expiration time, timezone offset
+- Multi-day pollen forecast lookup by coordinates
+- Overall pollen risk assessment
+- Detailed species-level pollen data with risk levels
+- Display names and values for individual pollen species
+- Date-specific or current date forecasts
 - API key validation
+
+### WeatherAlertService
+
+The `WeatherAlertService` aggregates weather alerts from multiple international sources without requiring an API key.
+
+**Key Features:**
+- **Meteoalarm**: European weather alerts by coordinates
+- **NWS** (National Weather Service): US weather alerts by coordinates
+- **GDACS** (Global Disaster Alert and Coordination System): Global disaster alerts
+- **Environment Canada**: Canadian weather warnings by province code
+- **BOM Australia**: Australian weather warnings by state code
+- **EMSC** (European-Mediterranean Seismological Centre): Earthquake alerts by coordinates and radius
+- **DWD** (Deutscher Wetterdienst): German weather warnings
+- **Combined alerts**: Fetch from multiple sources simultaneously
+- Automatic User-Agent header management for provider compatibility
 
 ### SunriseSunsetService
 
@@ -170,24 +175,17 @@ The `OpenStreetMapService` provides geocoding through OpenStreetMap Nominatim.
 ### Basic Setup
 
 ```csharp
-using Microsoft.Extensions.Logging.Abstractions;
-using Xcalibur.Weather.Services.WeatherProvider.OpenMeteo;
-using Xcalibur.Weather.Services.WeatherProvider.Geocodio;
-using Xcalibur.Weather.Services.WeatherProvider.IpGeo;
-using Xcalibur.Weather.Services.WeatherProvider.GooglePollen;
-using Xcalibur.Weather.Services.WeatherProvider.GoogleWeatherAlerts;
-using Xcalibur.Weather.Services.WeatherProvider.SunriseSunset;
-using Xcalibur.Weather.Services.WeatherProvider.OpenStreetMap;
+using Microsoft.Extensions.Logging;
+using Xcalibur.Weather.Services;
 
 var httpClient = new HttpClient();
 var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
-var logger = loggerFactory.CreateLogger<OpenMeteoService>();
 
-var openMeteoService = new OpenMeteoService(httpClient, logger);
+var openMeteoService = new OpenMeteoService(httpClient, loggerFactory.CreateLogger<OpenMeteoService>());
 var geocodioService = new GeocodioService(httpClient, "YOUR_GEOCODIO_API_KEY", loggerFactory.CreateLogger<GeocodioService>());
 var ipGeoService = new IpGeoService(httpClient, "YOUR_IPGEO_API_KEY", loggerFactory.CreateLogger<IpGeoService>());
-var googlePollenService = new GooglePollenService(httpClient, "YOUR_GOOGLE_POLLEN_API_KEY", loggerFactory.CreateLogger<GooglePollenService>());
-var googleWeatherAlertsService = new GoogleWeatherAlertsService(httpClient, "YOUR_GOOGLE_WEATHER_ALERTS_API_KEY", loggerFactory.CreateLogger<GoogleWeatherAlertsService>());
+var atmosporeService = new AtmosporeService(httpClient, "YOUR_ATMOSPORE_API_KEY", loggerFactory.CreateLogger<AtmosporeService>());
+var weatherAlertService = new WeatherAlertService(httpClient, loggerFactory.CreateLogger<WeatherAlertService>());
 var sunriseSunsetService = new SunriseSunsetService(httpClient, loggerFactory.CreateLogger<SunriseSunsetService>());
 var openStreetMapService = new OpenStreetMapService(httpClient, loggerFactory.CreateLogger<OpenStreetMapService>());
 ```
@@ -252,11 +250,11 @@ if (dailyForecast?.Daily != null)
 }
 ```
 
-#### Get Yesterday's Weather
+#### Get Yesterday's Hourly Weather
 
 ```csharp
 var yesterday = DateTime.UtcNow.AddDays(-1);
-var historicalWeather = await openMeteoService.GetYesterdayForecastAsync(
+var historicalWeather = await openMeteoService.GetYesterdayHourlyForecastAsync(
     "40.7128", 
     "-74.0060", 
     yesterday.ToString("yyyy-MM-dd"));
@@ -268,6 +266,24 @@ if (historicalWeather?.Hourly != null)
     {
         Console.WriteLine($"{historicalWeather.Hourly.Time[i]}: {historicalWeather.Hourly.Temperature2m[i]}°C");
     }
+}
+```
+
+#### Get Yesterday's Daily Weather
+
+```csharp
+var yesterday = DateTime.UtcNow.AddDays(-1);
+var historicalDaily = await openMeteoService.GetYesterdayDailyForecastAsync(
+    "40.7128", 
+    "-74.0060", 
+    yesterday.ToString("yyyy-MM-dd"));
+
+if (historicalDaily?.Daily != null)
+{
+    Console.WriteLine($"Yesterday's daily summary:");
+    Console.WriteLine($"High: {historicalDaily.Daily.Temperature2mMax?[0]}°C");
+    Console.WriteLine($"Low: {historicalDaily.Daily.Temperature2mMin?[0]}°C");
+    Console.WriteLine($"Precipitation: {historicalDaily.Daily.PrecipitationSum?[0]}mm");
 }
 ```
 
@@ -340,84 +356,181 @@ if (sunMoonData != null)
 }
 ```
 
-### GooglePollen Examples
+### Atmospore Examples
 
 #### Setup with API Key
 
 ```csharp
-var googlePollenService = new GooglePollenService(
+var atmosporeService = new AtmosporeService(
     httpClient,
-    "YOUR_GOOGLE_POLLEN_API_KEY",
-    loggerFactory.CreateLogger<GooglePollenService>());
+    "YOUR_ATMOSPORE_API_KEY",
+    loggerFactory.CreateLogger<AtmosporeService>());
 ```
 
 #### Test API Key
 
 ```csharp
-var isValid = await googlePollenService.TestApiKey();
+var isValid = await atmosporeService.TestApiKey();
 Console.WriteLine($"API Key is {(isValid ? "valid" : "invalid")}");
 ```
 
-#### Get Pollen Forecast
+#### Get Pollen Forecast for Today
 
 ```csharp
-var pollenForecast = await googlePollenService.GetPollenForecastAsync("39.4300996", "-77.804161");
+var pollenForecast = await atmosporeService.GetPollenForecastAsync(
+    "39.4300996", 
+    "-77.804161", 
+    null, // null = today's date
+    1);   // 1 day forecast
 
-if (pollenForecast?.DailyInfo != null && pollenForecast.DailyInfo.Count > 0)
+if (pollenForecast?.Data != null && pollenForecast.Data.Count > 0)
 {
-    var daily = pollenForecast.DailyInfo[0];
-    Console.WriteLine($"Region: {pollenForecast.RegionCode}");
+    var daily = pollenForecast.Data[0];
+    Console.WriteLine($"Date: {daily.Date}");
+    Console.WriteLine($"Overall Risk: {daily.OverallRisk}");
 
-    if (daily.PollenTypeInfo != null)
+    if (daily.Species != null)
     {
-        foreach (var pollenType in daily.PollenTypeInfo)
+        foreach (var species in daily.Species)
         {
-            Console.WriteLine($"{pollenType.DisplayName}: {pollenType.IndexInfo?.Category} ({pollenType.IndexInfo?.Value})");
+            Console.WriteLine($"{species.DisplayName}: {species.RiskLevel} (Value: {species.Value})");
         }
     }
 }
 ```
 
-### GoogleWeatherAlerts Examples
-
-#### Setup with API Key
+#### Get Multi-Day Pollen Forecast
 
 ```csharp
-var googleWeatherAlertsService = new GoogleWeatherAlertsService(
-    httpClient,
-    "YOUR_GOOGLE_WEATHER_ALERTS_API_KEY",
-    loggerFactory.CreateLogger<GoogleWeatherAlertsService>());
-```
+var multiDayForecast = await atmosporeService.GetPollenForecastAsync(
+    "39.4300996", 
+    "-77.804161", 
+    "2026-05-27", // specific date
+    3);           // 3 days
 
-#### Test API Key
-
-```csharp
-var isValid = await googleWeatherAlertsService.TestApiKey();
-Console.WriteLine($"API Key is {(isValid ? "valid" : "invalid")}");
-```
-
-#### Get Weather Alerts
-
-```csharp
-var alertsResponse = await googleWeatherAlertsService.GetWeatherAlertsAsync("39.4300996", "-77.804161");
-
-if (alertsResponse?.WeatherAlerts != null && alertsResponse.WeatherAlerts.Count > 0)
+if (multiDayForecast?.Data != null)
 {
-    Console.WriteLine($"Region: {alertsResponse.RegionCode}");
+    Console.WriteLine($"Location: {multiDayForecast.Meta?.Location?.Lat}, {multiDayForecast.Meta?.Location?.Lon}");
 
-    foreach (var alert in alertsResponse.WeatherAlerts)
+    foreach (var day in multiDayForecast.Data)
     {
-        Console.WriteLine($"Alert: {alert.AlertTitle?.Text}");
-        Console.WriteLine($"Event: {alert.EventType}");
-        Console.WriteLine($"Area: {alert.AreaName}");
-        Console.WriteLine($"Severity: {alert.Severity} | Certainty: {alert.Certainty} | Urgency: {alert.Urgency}");
-        Console.WriteLine($"Valid: {alert.StartTime} – {alert.ExpirationTime}");
-        Console.WriteLine($"Source: {alert.DataSource?.Name} ({alert.DataSource?.Publisher})");
+        Console.WriteLine($"\n{day.Date}: Overall Risk = {day.OverallRisk}");
     }
 }
-else
+```
+
+### WeatherAlert Examples
+
+#### Setup
+
+```csharp
+var weatherAlertService = new WeatherAlertService(
+    httpClient,
+    loggerFactory.CreateLogger<WeatherAlertService>());
+```
+
+#### Get Combined Alerts from All Sources
+
+```csharp
+var combinedAlerts = await weatherAlertService.GetCombinedAlertsAsync(
+    "40.7128",  // latitude
+    "-74.0060", // longitude
+    "ON",       // province/state code
+    "NSW",      // Australian state code
+    100);       // radius in km for earthquake alerts
+
+if (combinedAlerts != null)
 {
-    Console.WriteLine("No active weather alerts.");
+    if (combinedAlerts.MeteoalarmAlerts != null)
+    {
+        Console.WriteLine($"Meteoalarm Alerts: {combinedAlerts.MeteoalarmAlerts.Count}");
+    }
+
+    if (combinedAlerts.NwsAlerts != null)
+    {
+        Console.WriteLine($"NWS Alerts: {combinedAlerts.NwsAlerts.Features?.Count ?? 0}");
+    }
+
+    if (combinedAlerts.GdacsAlerts != null)
+    {
+        Console.WriteLine($"GDACS Events: {combinedAlerts.GdacsAlerts.Item?.Count ?? 0}");
+    }
+}
+```
+
+#### Get Meteoalarm Alerts (European)
+
+```csharp
+var meteoalarmAlerts = await weatherAlertService.GetMeteoalarmAlertsAsync(
+    "48.8566",  // Paris latitude
+    "2.3522");  // Paris longitude
+
+if (meteoalarmAlerts != null)
+{
+    Console.WriteLine($"Found {meteoalarmAlerts.Count} Meteoalarm alerts");
+}
+```
+
+#### Get NWS Alerts (US)
+
+```csharp
+var nwsAlerts = await weatherAlertService.GetNwsAlertsAsync(
+    "40.7128",  // NYC latitude
+    "-74.0060"); // NYC longitude
+
+if (nwsAlerts?.Features != null)
+{
+    foreach (var feature in nwsAlerts.Features)
+    {
+        Console.WriteLine($"Event: {feature.Properties?.Event}");
+        Console.WriteLine($"Severity: {feature.Properties?.Severity}");
+        Console.WriteLine($"Description: {feature.Properties?.Description}");
+    }
+}
+```
+
+#### Get Environment Canada Alerts
+
+```csharp
+var canadaAlerts = await weatherAlertService.GetEnvironmentCanadaAlertsAsync("ON"); // Ontario
+
+if (canadaAlerts?.Channel?.Item != null)
+{
+    foreach (var item in canadaAlerts.Channel.Item)
+    {
+        Console.WriteLine($"Title: {item.Title}");
+        Console.WriteLine($"Category: {item.Category}");
+    }
+}
+```
+
+#### Get BOM Australia Alerts
+
+```csharp
+var bomAlerts = await weatherAlertService.GetBomAlertsAsync("NSW"); // New South Wales
+
+if (bomAlerts?.Warnings != null)
+{
+    Console.WriteLine($"Found {bomAlerts.Warnings.Count} BOM warnings");
+}
+```
+
+#### Get Earthquake Alerts (EMSC)
+
+```csharp
+var earthquakeAlerts = await weatherAlertService.GetEmscAlertsAsync(
+    "35.6762",  // Tokyo latitude
+    "139.6503", // Tokyo longitude
+    500);       // 500 km radius
+
+if (earthquakeAlerts?.Features != null)
+{
+    foreach (var earthquake in earthquakeAlerts.Features)
+    {
+        Console.WriteLine($"Magnitude: {earthquake.Properties?.Mag}");
+        Console.WriteLine($"Location: {earthquake.Properties?.Flynn_region}");
+        Console.WriteLine($"Time: {earthquake.Properties?.Time}");
+    }
 }
 ```
 
@@ -493,15 +606,22 @@ if (locations != null)
 - **Sign Up**: [IpGeolocation.io](https://ipgeolocation.io/)
 - **Documentation**: [IpGeo API Docs](https://ipgeolocation.io/documentation/astronomy-api.html)
 
-### Google Pollen API
-- **Base URL**: `https://pollen.googleapis.com/v1/forecast:lookup`
-- **API Key**: Required
-- **Documentation**: [Google Pollen API Docs](https://developers.google.com/maps/documentation/pollen)
+### Atmospore API
+- **Base URL**: `https://pollenapi.com/v1/pollen`
+- **API Key**: Required (via `x-api-key` header)
+- **Sign Up**: [Atmospore](https://pollenapi.com/)
+- **Documentation**: [Atmospore API Docs](https://pollenapi.com/docs)
 
-### Google Weather Alerts API
-- **Base URL**: `https://weather.googleapis.com/v1/publicAlerts:lookup`
-- **API Key**: Required
-- **Documentation**: [Google Weather Alerts API Docs](https://developers.google.com/maps/documentation/weather)
+### Weather Alert Sources
+- **Meteoalarm**: `https://api.meteoalarm.org/v1/alerts` (European weather alerts)
+- **NWS**: `https://api.weather.gov/alerts/active` (US National Weather Service)
+- **GDACS**: `https://www.gdacs.org/gdacsapi/api/events/geteventlist/MAP` (Global disasters)
+- **Environment Canada**: `https://weather.gc.ca/rss/warning/` (Canadian warnings)
+- **BOM**: `http://www.bom.gov.au/fwo/` (Australian Bureau of Meteorology)
+- **EMSC**: `https://www.seismicportal.eu/fdsnws/event/1/query` (European earthquake alerts)
+- **DWD**: `https://www.dwd.de/DWD/warnungen/warnapp/json/warnings.json` (German weather service)
+- **API Key**: Not required
+- **Note**: NWS requires a User-Agent header (automatically added by the service)
 
 ### SunriseSunset.io
 - **Base URL**: `https://api.sunrisesunset.io/json`
@@ -517,8 +637,8 @@ if (locations != null)
 ## 📚 Dependencies
 
 - **.NET 10.0**: Target framework
-- **Microsoft.Extensions.Hosting** (v10.0.7): For hosting, logging, and dependency injection abstractions
-- **Xcalibur.Weather.Models** (v1.0.3): Shared models and DTOs for weather data
+- **Microsoft.Extensions.Hosting** (v10.0.9): For hosting, logging, and dependency injection abstractions
+- **Xcalibur.Weather.Models** (v1.0.6): Shared models and DTOs for weather data
 
 ## 🧪 Testing
 
@@ -532,11 +652,11 @@ dotnet test
 
 ### Current Test Coverage
 
-- `OpenMeteoServiceTests`: Tests for Open-Meteo API operations
+- `OpenMeteoServiceTests`: Tests for Open-Meteo API operations (current weather, air quality, hourly/daily forecasts, historical data)
 - `GeocodioServiceTests`: Tests for geocoding functionality and API key validation
 - `IpGeoServiceTests`: Tests for astronomical data retrieval
-- `GooglePollenServiceTests`: Tests for pollen forecast retrieval, API key validation, and request URL generation
-- `GoogleWeatherAlertsServiceTests`: Tests for weather alert retrieval, API key validation, and request URL generation
+- `AtmosporeServiceTests`: Tests for pollen forecast retrieval, API key validation, header management, and request URL generation
+- `WeatherAlertServiceTests`: Tests for multi-provider alert retrieval (Meteoalarm, NWS, GDACS, Environment Canada, BOM, EMSC, DWD), combined alerts, and User-Agent handling
 - `SunriseSunsetServiceTests`: Tests for sunrise and sunset data retrieval
 - `OpenStreetMapServiceTests`: Tests for geocoding and Nominatim request behavior
 
@@ -544,32 +664,24 @@ dotnet test
 
 ```
 Xcalibur.Weather.Services/
-├── WeatherProvider/
-│   ├── OpenMeteo/
-│   │   └── OpenMeteoService.cs
-│   ├── Geocodio/
-│   │   └── GeocodioService.cs
-│   ├── IpGeo/
-│   │   └── IpGeoService.cs
-│   ├── GooglePollen/
-│   │   └── GooglePollenService.cs
-│   ├── GoogleWeatherAlerts/
-│   │   └── GoogleWeatherAlertsService.cs
-│   ├── SunriseSunset/
-│   │   └── SunriseSunsetService.cs
-│   └── OpenStreetMap/
-│       └── OpenStreetMapService.cs
-├── Xcalibur.Weather.Services.csproj
-│
+├── AtmosporeService.cs
+├── GeocodioService.cs
+├── IpGeoService.cs
+├── OpenMeteoService.cs
+├── OpenStreetMapService.cs
+├── SunriseSunsetService.cs
+├── WeatherAlertService.cs
+└── Xcalibur.Weather.Services.csproj
+
 Xcalibur.Weather.Services.Tests/
-├── WeatherProvider/
-│   ├── OpenMeteoServiceTests.cs
+├── Services/
+│   ├── AtmosporeServiceTests.cs
 │   ├── GeocodioServiceTests.cs
 │   ├── IpGeoServiceTests.cs
-│   ├── GooglePollenServiceTests.cs
-│   ├── GoogleWeatherAlertsServiceTests.cs
+│   ├── OpenMeteoServiceTests.cs
+│   ├── OpenStreetMapServiceTests.cs
 │   ├── SunriseSunsetServiceTests.cs
-│   └── OpenStreetMapServiceTests.cs
+│   └── WeatherAlertServiceTests.cs
 └── Xcalibur.Weather.Services.Tests.csproj
 ```
 
@@ -614,9 +726,10 @@ catch (OperationCanceledException)
 2. **Use Dependency Injection**: Register services in your DI container for better testability
 3. **Handle Nulls**: All service methods return nullable types; always check for null responses
 4. **Monitor Logs**: Enable debug logging to troubleshoot API issues
-5. **Respect Provider Policies**: Be mindful of rate limits and usage policies for Geocodio, IpGeo, Google Pollen, SunriseSunset.io, and OpenStreetMap Nominatim
+5. **Respect Provider Policies**: Be mindful of rate limits and usage policies for Geocodio, IpGeo, Atmospore, SunriseSunset.io, and OpenStreetMap Nominatim
 6. **Secure API Keys**: Store API keys in secure configuration (Azure Key Vault, user secrets, etc.)
-7. **Set a User-Agent When Needed**: OpenStreetMap Nominatim requires a meaningful `User-Agent`; the service sets a default if one is not already present
+7. **Set a User-Agent When Needed**: OpenStreetMap Nominatim and NWS require a meaningful `User-Agent`; services set defaults if one is not already present
+8. **Aggregate Alerts Efficiently**: Use `GetCombinedAlertsAsync` to fetch from multiple weather alert sources in parallel
 
 ## 🔐 API Key Management
 
@@ -626,8 +739,7 @@ catch (OperationCanceledException)
 dotnet user-secrets init
 dotnet user-secrets set "Geocodio:ApiKey" "YOUR_API_KEY"
 dotnet user-secrets set "IpGeo:ApiKey" "YOUR_API_KEY"
-dotnet user-secrets set "GooglePollen:ApiKey" "YOUR_API_KEY"
-dotnet user-secrets set "GoogleWeatherAlerts:ApiKey" "YOUR_API_KEY"
+dotnet user-secrets set "Atmospore:ApiKey" "YOUR_API_KEY"
 ```
 
 ### appsettings.json
@@ -640,11 +752,8 @@ dotnet user-secrets set "GoogleWeatherAlerts:ApiKey" "YOUR_API_KEY"
   "IpGeo": {
     "ApiKey": "YOUR_IPGEO_API_KEY"
   },
-  "GooglePollen": {
-    "ApiKey": "YOUR_GOOGLE_POLLEN_API_KEY"
-  },
-  "GoogleWeatherAlerts": {
-    "ApiKey": "YOUR_GOOGLE_WEATHER_ALERTS_API_KEY"
+  "Atmospore": {
+    "ApiKey": "YOUR_ATMOSPORE_API_KEY"
   }
 }
 ```
@@ -654,8 +763,7 @@ dotnet user-secrets set "GoogleWeatherAlerts:ApiKey" "YOUR_API_KEY"
 ```bash
 set GEOCODIO_API_KEY=your_key_here
 set IPGEO_API_KEY=your_key_here
-set GOOGLEPOLLEN_API_KEY=your_key_here
-set GOOGLEWEATHERALERTS_API_KEY=your_key_here
+set ATMOSPORE_API_KEY=your_key_here
 ```
 
 ## 📄 License
@@ -680,4 +788,4 @@ Xcalibur Systems, LLC
 
 ---
 
-**Note**: This library requires API keys for Geocodio, IpGeolocation.io, Google Pollen, and Google Weather Alerts services. Open-Meteo, SunriseSunset.io, and OpenStreetMap Nominatim do not require API keys.
+**Note**: This library requires API keys for Geocodio, IpGeolocation.io, and Atmospore services. Open-Meteo, SunriseSunset.io, OpenStreetMap Nominatim, and all Weather Alert sources (Meteoalarm, NWS, GDACS, Environment Canada, BOM, EMSC, DWD) do not require API keys.
