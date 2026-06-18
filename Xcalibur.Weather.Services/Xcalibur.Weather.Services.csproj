@@ -7,7 +7,7 @@
 
 		<!-- NuGet Package Metadata -->
 		<PackageId>Xcalibur.Weather.Services</PackageId>
-		<Version>1.0.6</Version>
+		<Version>1.0.7</Version>
 		<Authors>Joshua Arzt</Authors>
 		<Company>Xcalibur Systems, LLC.</Company>
 		<Product>Xcalibur.Weather.Services</Product>
@@ -17,7 +17,7 @@
 		<RepositoryType>git</RepositoryType>
 		<PackageIcon>X_logo_512.png</PackageIcon>
 		<PackageTags>weather;forecast;openmeteo;geocoding;air-quality;astronomy;services;httpclient;weather-api;meteorology;ipgeolocation;atmospore;pollen;weather-alerts;sunrise-sunset;openstreetmap;async</PackageTags>
-		<PackageReleaseNotes>Added services for Atmospore API, removed legacy API services.</PackageReleaseNotes>
+		<PackageReleaseNotes>Xcalibur.Weather.Models update for JSON deserialization.</PackageReleaseNotes>
 		<PublishRepositoryUrl>true</PublishRepositoryUrl>
 		<EmbedUntrackedSources>true</EmbedUntrackedSources>
 		<PackageLicenseExpression></PackageLicenseExpression>
@@ -51,7 +51,7 @@
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.9" />
-		<PackageReference Include="Xcalibur.Weather.Models" Version="1.0.6" />
+		<PackageReference Include="Xcalibur.Weather.Models" Version="1.0.7" />
 	</ItemGroup>
 
 </Project>
