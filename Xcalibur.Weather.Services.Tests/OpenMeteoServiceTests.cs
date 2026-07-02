@@ -4,9 +4,8 @@ using System.Text.Json;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xcalibur.Weather.Models.Testing;
-using Xcalibur.Weather.Services;
 
-namespace Xcalibur.Weather.Services.Tests.Services
+namespace Xcalibur.Weather.Services.Tests
 {
     /// <summary>
     /// Tests for <see cref="OpenMeteoService"/>.

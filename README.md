@@ -10,12 +10,13 @@ A comprehensive .NET library providing HTTP client services for weather-related 
 
 ## Latest Updates
 
-- Package version: `1.0.6`
-- Models package dependency: `1.0.6`
+- **Package version**: `1.0.6`
+- **Models package dependency**: `1.0.6`
+- **Target framework**: .NET 10.0
 - Added `AtmosporeService` for pollen forecast data from Atmospore API
 - Added `WeatherAlertService` for multi-provider weather alerts (Meteoalarm, NWS, GDACS, Environment Canada, BOM Australia, EMSC, DWD)
 - Services moved to flat namespace structure (`Xcalibur.Weather.Services`)
-- All 44 unit tests passing with comprehensive coverage
+- **All 44 unit tests passing** with comprehensive coverage across all services
 
 ## 📋 Table of Contents
 
@@ -650,15 +651,66 @@ The project includes comprehensive unit tests in the `Xcalibur.Weather.Services.
 dotnet test
 ```
 
+All tests use:
+- **xUnit** as the testing framework
+- **FluentAssertions** for readable assertions
+- **DelegatingHandlerStub** from `Xcalibur.Weather.Models.Testing` for HTTP mocking
+- **NullLogger** for lightweight test logging
+
+### Test Statistics
+
+- **Total Tests**: 44
+- **Status**: ✅ All passing
+- **Coverage**: Comprehensive unit tests for all services
+
 ### Current Test Coverage
 
-- `OpenMeteoServiceTests`: Tests for Open-Meteo API operations (current weather, air quality, hourly/daily forecasts, historical data)
-- `GeocodioServiceTests`: Tests for geocoding functionality and API key validation
-- `IpGeoServiceTests`: Tests for astronomical data retrieval
-- `AtmosporeServiceTests`: Tests for pollen forecast retrieval, API key validation, header management, and request URL generation
-- `WeatherAlertServiceTests`: Tests for multi-provider alert retrieval (Meteoalarm, NWS, GDACS, Environment Canada, BOM, EMSC, DWD), combined alerts, and User-Agent handling
-- `SunriseSunsetServiceTests`: Tests for sunrise and sunset data retrieval
-- `OpenStreetMapServiceTests`: Tests for geocoding and Nominatim request behavior
+**OpenMeteoServiceTests** (7 tests)
+- Current weather deserialization and validation
+- Air quality data retrieval
+- Hourly and daily forecast operations
+- Historical weather data (yesterday)
+- Error handling for non-success HTTP responses
+- Invalid JSON response handling
+
+**GeocodioServiceTests** (5 tests)
+- API key validation (valid, invalid, forbidden)
+- Address-to-coordinate geocoding
+- Error handling for bad requests
+- Invalid JSON response handling
+
+**IpGeoServiceTests** (5 tests)
+- API key validation (valid, unauthorized)
+- Astronomical data retrieval (sun/moon)
+- Error handling for non-success responses
+- Invalid JSON response handling
+
+**AtmosporeServiceTests** (9 tests)
+- API key validation (OK, unauthorized, forbidden)
+- Pollen forecast data deserialization
+- URL generation with explicit and null dates
+- API key header verification
+- Request parameter validation
+- Error handling for bad requests
+- Invalid JSON response handling
+
+**WeatherAlertServiceTests** (10 tests)
+- Multi-provider alert aggregation
+- Individual provider alert retrieval (Meteoalarm, NWS, GDACS, Environment Canada, BOM, EMSC, DWD)
+- User-Agent header management
+- Error handling for all alert sources
+- Combined alert fetching from multiple sources
+
+**SunriseSunsetServiceTests** (3 tests)
+- Sunrise and sunset data deserialization
+- Error handling for non-success responses
+- Invalid JSON response handling
+
+**OpenStreetMapServiceTests** (5 tests)
+- Location search and geocoding
+- User-Agent header management (default, preservation)
+- Error handling for bad requests
+- Invalid JSON response handling
 
 ## 🏗️ Project Structure
 
@@ -674,14 +726,13 @@ Xcalibur.Weather.Services/
 └── Xcalibur.Weather.Services.csproj
 
 Xcalibur.Weather.Services.Tests/
-├── Services/
-│   ├── AtmosporeServiceTests.cs
-│   ├── GeocodioServiceTests.cs
-│   ├── IpGeoServiceTests.cs
-│   ├── OpenMeteoServiceTests.cs
-│   ├── OpenStreetMapServiceTests.cs
-│   ├── SunriseSunsetServiceTests.cs
-│   └── WeatherAlertServiceTests.cs
+├── AtmosporeServiceTests.cs
+├── GeocodioServiceTests.cs
+├── IpGeoServiceTests.cs
+├── OpenMeteoServiceTests.cs
+├── OpenStreetMapServiceTests.cs
+├── SunriseSunsetServiceTests.cs
+├── WeatherAlertServiceTests.cs
 └── Xcalibur.Weather.Services.Tests.csproj
 ```
 

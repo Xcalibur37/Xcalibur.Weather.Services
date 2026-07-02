@@ -64,7 +64,7 @@ namespace Xcalibur.Weather.Services
         /// <param name="longitude">The longitude.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>Meteoalarm response or null on error.</returns>
-        public async Task<MeteoalarmResponse?> GetMeteoalarmAlertsAsync(
+        public async Task<MeteoalarmAlertsResponse?> GetMeteoalarmAlertsAsync(
             string latitude, 
             string longitude, 
             CancellationToken cancellationToken = default)
@@ -86,7 +86,7 @@ namespace Xcalibur.Weather.Services
 
                 await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
                 return await JsonSerializer.DeserializeAsync(stream,
-                    WeatherAlertJsonContext.Default.MeteoalarmResponse, cancellationToken);
+                    WeatherAlertJsonContext.Default.MeteoalarmAlertsResponse, cancellationToken);
             }
             catch (HttpRequestException ex)
             {
@@ -178,7 +178,7 @@ namespace Xcalibur.Weather.Services
         /// <param name="longitude">The longitude.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>GDACS response or null on error.</returns>
-        public async Task<GdacsResponse?> GetGdacsAlertsAsync(
+        public async Task<GdacsAlertsResponse?> GetGdacsAlertsAsync(
             string latitude,
             string longitude,
             CancellationToken cancellationToken = default)
@@ -200,7 +200,7 @@ namespace Xcalibur.Weather.Services
 
                 await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
                 return await JsonSerializer.DeserializeAsync(stream,
-                    WeatherAlertJsonContext.Default.GdacsResponse, cancellationToken);
+                    WeatherAlertJsonContext.Default.GdacsAlertsResponse, cancellationToken);
             }
             catch (HttpRequestException ex)
             {
@@ -236,7 +236,7 @@ namespace Xcalibur.Weather.Services
         /// <param name="provinceCode">The province/territory code (e.g., 'on' for Ontario, 'bc' for British Columbia). Should be derived from the address/coordinates.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>Environment Canada response or null on error.</returns>
-        public async Task<EnvironmentCanadaResponse?> GetEnvironmentCanadaAlertsAsync(
+        public async Task<EnvironmentCanadaAlertsResponse?> GetEnvironmentCanadaAlertsAsync(
             string latitude,
             string longitude,
             string provinceCode,
@@ -259,8 +259,8 @@ namespace Xcalibur.Weather.Services
                 }
 
                 await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-                var serializer = new XmlSerializer(typeof(EnvironmentCanadaResponse));
-                return serializer.Deserialize(stream) as EnvironmentCanadaResponse;
+                var serializer = new XmlSerializer(typeof(EnvironmentCanadaAlertsResponse));
+                return serializer.Deserialize(stream) as EnvironmentCanadaAlertsResponse;
             }
             catch (HttpRequestException ex)
             {
@@ -360,7 +360,7 @@ namespace Xcalibur.Weather.Services
         /// <param name="radiusKm">The search radius in kilometers (default: 500).</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>EMSC response or null if request fails.</returns>
-        public async Task<EmscResponse?> GetEmscAlertsAsync(
+        public async Task<EmscAlertsResponse?> GetEmscAlertsAsync(
             string latitude,
             string longitude,
             int radiusKm = 500,
@@ -375,7 +375,7 @@ namespace Xcalibur.Weather.Services
                 var response = await _http.GetAsync(url, cancellationToken);
                 response.EnsureSuccessStatusCode();
                 var json = await response.Content.ReadAsStringAsync(cancellationToken);
-                return JsonSerializer.Deserialize(json, WeatherAlertJsonContext.Default.EmscResponse);
+                return JsonSerializer.Deserialize(json, WeatherAlertJsonContext.Default.EmscAlertsResponse);
             }
             catch (Exception ex)
             {
@@ -433,7 +433,7 @@ namespace Xcalibur.Weather.Services
         /// <param name="longitude">The longitude.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>Tuple containing Meteoalarm, NWS, and GDACS responses.</returns>
-        public async Task<(MeteoalarmResponse? Meteoalarm, NwsAlertsResponse? Nws, GdacsResponse? Gdacs)> GetCombinedAlertsAsync(
+        public async Task<(MeteoalarmAlertsResponse? Meteoalarm, NwsAlertsResponse? Nws, GdacsAlertsResponse? Gdacs)> GetCombinedAlertsAsync(
             string latitude,
             string longitude,
             CancellationToken cancellationToken = default)
@@ -456,7 +456,7 @@ namespace Xcalibur.Weather.Services
     /// <summary>
     /// JSON serialization context for weather alert types.
     /// </summary>
-    [JsonSerializable(typeof(MeteoalarmResponse))]
+    [JsonSerializable(typeof(MeteoalarmAlertsResponse))]
     [JsonSerializable(typeof(MeteoalarmAlertResponse))]
     [JsonSerializable(typeof(List<MeteoalarmAlertResponse>))]
     [JsonSerializable(typeof(NwsAlertsResponse))]
@@ -464,7 +464,7 @@ namespace Xcalibur.Weather.Services
     [JsonSerializable(typeof(NwsAlertPropertiesResponse))]
     [JsonSerializable(typeof(NwsGeocodeResponse))]
     [JsonSerializable(typeof(List<NwsAlertResponse>))]
-    [JsonSerializable(typeof(GdacsResponse))]
+    [JsonSerializable(typeof(GdacsAlertsResponse))]
     [JsonSerializable(typeof(GdacsFeatureResponse))]
     [JsonSerializable(typeof(GdacsEventResponse))]
     [JsonSerializable(typeof(GdacsGeometryResponse))]
@@ -473,7 +473,7 @@ namespace Xcalibur.Weather.Services
     [JsonSerializable(typeof(BomMetadataResponse))]
     [JsonSerializable(typeof(BomWarningResponse))]
     [JsonSerializable(typeof(List<BomWarningResponse>))]
-    [JsonSerializable(typeof(EmscResponse))]
+    [JsonSerializable(typeof(EmscAlertsResponse))]
     [JsonSerializable(typeof(EmscFeatureResponse))]
     [JsonSerializable(typeof(EmscEventResponse))]
     [JsonSerializable(typeof(EmscGeometryResponse))]

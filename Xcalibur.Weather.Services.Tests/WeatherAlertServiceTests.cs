@@ -4,7 +4,7 @@ using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xcalibur.Weather.Models.Testing;
 
-namespace Xcalibur.Weather.Services.Tests.Services
+namespace Xcalibur.Weather.Services.Tests
 {
     /// <summary>
     /// Tests for <see cref="WeatherAlertService"/>.

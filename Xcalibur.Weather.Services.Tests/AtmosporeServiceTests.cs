@@ -4,13 +4,16 @@ using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xcalibur.Weather.Models.Testing;
 
-namespace Xcalibur.Weather.Services.Tests.Services
+namespace Xcalibur.Weather.Services.Tests
 {
     /// <summary>
     /// Tests for <see cref="AtmosporeService"/>.
     /// </summary>
     public sealed class AtmosporeServiceTests
     {
+        /// <summary>
+        /// Helper handler to record HTTP requests for assertion.
+        /// </summary>
         private sealed class RecordingHandler : HttpMessageHandler
         {
             private readonly HttpResponseMessage _response;
@@ -133,7 +136,7 @@ namespace Xcalibur.Weather.Services.Tests.Services
 
             // Assert
             result.Should().NotBeNull();
-            result!.Meta.Should().NotBeNull();
+            result.Meta.Should().NotBeNull();
             result.Meta!.Location.Should().NotBeNull();
             result.Meta.Location!.Lat.Should().Be(39.43);
             result.Meta.Location.Lon.Should().Be(-77.8);
@@ -143,8 +146,8 @@ namespace Xcalibur.Weather.Services.Tests.Services
             result.Data[0].OverallRisk.Should().Be("moderate");
             result.Data[0].Species.Should().ContainKey("Grass");
             result.Data[0].Species!["Grass"].Value.Should().Be(45.2);
-            result.Data[0].Species["Grass"].RiskLevel.Should().Be("moderate");
-            result.Data[0].Species["Grass"].DisplayName.Should().Be("Grass");
+            result.Data[0].Species!["Grass"].RiskLevel.Should().Be("moderate");
+            result.Data[0].Species!["Grass"].DisplayName.Should().Be("Grass");
         }
 
         [Fact]
