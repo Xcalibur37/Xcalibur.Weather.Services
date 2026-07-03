@@ -8,11 +8,23 @@ A comprehensive .NET library providing HTTP client services for weather-related 
 
 **Created by**: Joshua Arzt | **Company**: Xcalibur Systems, LLC.
 
+## Purpose
+
+**Xcalibur.Weather.Services** is designed to:
+
+- Provide production-ready HTTP client services for multiple weather, geocoding, astronomy, pollen, and alert APIs
+- Enable seamless integration with Open-Meteo, Geocodio, IpGeolocation.io, Atmospore, SunriseSunset.io, OpenStreetMap, and multi-source weather alert providers
+- Deliver async/await patterns with cancellation token support for responsive applications
+- Offer strongly-typed responses using Xcalibur.Weather.Models
+- Support both API-key and no-key service providers for flexible deployment scenarios
+- Centralize API communication logic with built-in error handling and logging
+
 ## Latest Updates
 
-- **Package version**: `1.0.6`
-- **Models package dependency**: `1.0.6`
+- **Package version**: `1.0.11`
+- **Models package dependency**: `1.0.11`
 - **Target framework**: .NET 10.0
+- **Latest release**: Performance improvements and property descriptions for Weather Alerts
 - Added `AtmosporeService` for pollen forecast data from Atmospore API
 - Added `WeatherAlertService` for multi-provider weather alerts (Meteoalarm, NWS, GDACS, Environment Canada, BOM Australia, EMSC, DWD)
 - Services moved to flat namespace structure (`Xcalibur.Weather.Services`)
@@ -20,7 +32,11 @@ A comprehensive .NET library providing HTTP client services for weather-related 
 
 ## 📋 Table of Contents
 
+- [Purpose](#purpose)
+- [Latest Updates](#latest-updates)
 - [Features](#-features)
+- [Technology](#-technology)
+- [Use Cases](#-use-cases)
 - [Installation](#-installation)
 - [Services](#-services)
   - [OpenMeteoService](#openmeteoservice)
@@ -46,8 +62,10 @@ A comprehensive .NET library providing HTTP client services for weather-related 
 - [Best Practices](#-best-practices)
 - [Advanced Configuration](#-advanced-configuration)
 - [Project Structure](#-project-structure)
+- [Version History](#-version-history)
 - [License](#-license)
 - [Related Projects](#-related-projects)
+- [Contributing](#-contributing)
 
 ## ✨ Features
 
@@ -63,6 +81,38 @@ A comprehensive .NET library providing HTTP client services for weather-related 
 - **Type-Safe**: Strongly-typed responses using Xcalibur.Weather.Models
 - **Flexible Provider Coverage**: Includes both API key and no-key providers for geocoding, pollen, and astronomy data
 
+## 🔧 Technology
+
+- **Target Framework**: .NET 10.0
+- **Current Package Version**: 1.0.11
+- **Dependencies**:
+  - Microsoft.Extensions.Hosting (v10.0.9) - For logging and dependency injection abstractions
+  - Xcalibur.Weather.Models (v1.0.11) - Shared models and DTOs
+- **Features**:
+  - Implicit usings enabled
+  - Nullable reference types enabled
+  - Async/await throughout with CancellationToken support
+  - Native AOT compilation support via source-generated JSON contexts
+  - Streaming JSON deserialization for efficient memory usage
+  - Built-in retry logic and error handling
+  - Comprehensive logging via Microsoft.Extensions.Logging
+  - NuGet package generation on Release build
+
+## 💡 Use Cases
+
+This library is ideal for:
+
+- **Weather Applications**: Mobile and desktop apps requiring current conditions, forecasts, and air quality data
+- **Smart Home Systems**: IoT devices and home automation requiring weather-based triggers
+- **Agricultural Solutions**: Farm management systems needing weather, pollen, and environmental data
+- **Travel & Navigation Apps**: Applications requiring location-based weather and alerts
+- **Health & Wellness Apps**: Allergy tracking with pollen forecast integration
+- **Emergency Management**: Systems aggregating multi-source weather alerts and disaster notifications
+- **Environmental Monitoring**: Air quality dashboards and pollution tracking systems
+- **Astronomy Applications**: Sunrise/sunset tracking, moon phase, and astronomical event planning
+- **Geocoding Services**: Address validation, coordinate lookup, and location-based features
+- **Web APIs & Microservices**: Backend services needing weather data aggregation from multiple providers
+
 ## 📦 Installation
 
 Install via NuGet Package Manager:
@@ -75,6 +125,12 @@ Or via Package Manager Console:
 
 ```powershell
 Install-Package Xcalibur.Weather.Services
+```
+
+Or add to your project file:
+
+```xml
+<PackageReference Include="Xcalibur.Weather.Services" Version="1.0.11" />
 ```
 
 ## 🌦️ Services
@@ -639,7 +695,7 @@ if (locations != null)
 
 - **.NET 10.0**: Target framework
 - **Microsoft.Extensions.Hosting** (v10.0.9): For hosting, logging, and dependency injection abstractions
-- **Xcalibur.Weather.Models** (v1.0.6): Shared models and DTOs for weather data
+- **Xcalibur.Weather.Models** (v1.0.11): Shared models and DTOs for weather data
 
 ## 🧪 Testing
 
@@ -817,6 +873,75 @@ set IPGEO_API_KEY=your_key_here
 set ATMOSPORE_API_KEY=your_key_here
 ```
 
+## 📜 Version History
+
+### v1.0.11 (Current)
+- **Performance improvements** and property descriptions for Weather Alerts
+- Enhanced documentation and XML comments
+- Updated dependencies to latest stable versions
+
+### v1.0.10
+- Additional property descriptions and documentation improvements
+- Bug fixes and stability enhancements
+
+### v1.0.9
+- Minor bug fixes and refinements
+- Improved error handling across services
+
+### v1.0.8
+- Internal improvements and updates
+- Dependency version updates
+
+### v1.0.7
+- Added multi-source weather alert aggregation support
+- Introduced `GetCombinedAlertsAsync` for unified alert handling
+- Enhanced alert service provider coverage
+
+### v1.0.6
+- **Major Refactoring**: Services moved to flat namespace structure (`Xcalibur.Weather.Services`)
+- **Added AtmosporeService**: Pollen forecast data from Atmospore API (replaced Google Pollen)
+- **Added WeatherAlertService**: Multi-provider weather alerts
+  - Meteoalarm (European severe weather)
+  - NWS (US National Weather Service)
+  - GDACS (Global disasters)
+  - Environment Canada (Canadian alerts)
+  - BOM (Australian Bureau of Meteorology)
+  - EMSC (European earthquake data)
+  - DWD (German Weather Service)
+- Updated to use Xcalibur.Weather.Models v1.0.6 with refactored structure
+
+### v1.0.5
+- Added support for Google Weather Alerts API
+- Introduced weather alert retrieval capabilities
+- Updated model dependencies
+
+### v1.0.4
+- Added pollen forecast support (Google Pollen API)
+- Enhanced geocoding functionality
+- Improved error handling
+
+### v1.0.3
+- Added SunriseSunsetService for astronomy data
+- Added OpenStreetMapService for geocoding
+- Expanded API provider coverage
+
+### v1.0.2
+- Improved logging and error handling
+- Performance optimizations
+- Documentation updates
+
+### v1.0.1
+- Initial bug fixes
+- Improved API key validation
+
+### v1.0.0
+- Initial release
+- OpenMeteoService for weather and air quality
+- GeocodioService for geocoding
+- IpGeoService for astronomy data
+- Comprehensive async/await support
+- Built-in logging and error handling
+
 ## 📄 License
 
 This project is licensed under the Apache License 2.0. See the [LICENSE-2.0.txt](LICENSE-2.0.txt) file for details.
@@ -827,6 +952,20 @@ Copyright © 2006 - 2026, Xcalibur Systems, LLC - All Rights Reserved
 
 - **[Xcalibur.Weather.Models](https://www.nuget.org/packages/Xcalibur.Weather.Models/)** - Core weather data models and DTOs ([GitHub](https://github.com/Xcalibur37/Xcalibur.Weather.Models))
 - **[Xcalibur.Weather.Helpers](https://www.nuget.org/packages/Xcalibur.Weather.Helpers/)** - Utility functions and conversion helpers ([GitHub](https://github.com/Xcalibur37/Xcalibur.Weather.Helpers))
+
+*Part of the Xcalibur Weather ecosystem for comprehensive weather data integration.*
+
+---
+
+## 👥 Contributing
+
+Contributions are welcome! Please feel free to submit issues or pull requests to improve the library.
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ---
 

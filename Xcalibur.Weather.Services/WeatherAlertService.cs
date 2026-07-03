@@ -47,10 +47,8 @@ namespace Xcalibur.Weather.Services
             _http.DefaultRequestHeaders.ConnectionClose = false;
 
             // NWS requires a User-Agent header
-            if (!_http.DefaultRequestHeaders.Contains("User-Agent"))
-            {
-                _http.DefaultRequestHeaders.Add("User-Agent", "Xcalibur.Weather/1.0 (weather-app; info@xcalibursystems.com)");
-            }
+            if (_http.DefaultRequestHeaders.Contains("User-Agent")) return;
+            _http.DefaultRequestHeaders.Add("User-Agent", "Xcalibur.Weather/1.0 (weather-app; info@xcalibursystems.com)");
         }
 
         #endregion
@@ -348,10 +346,6 @@ namespace Xcalibur.Weather.Services
             }
         }
 
-        #endregion
-
-        #region EMSC Methods
-
         /// <summary>
         /// Gets earthquake alerts from EMSC (European-Mediterranean Seismological Centre) for a specific location.
         /// </summary>
@@ -385,10 +379,6 @@ namespace Xcalibur.Weather.Services
             }
         }
 
-        #endregion
-
-        #region DWD Methods
-
         /// <summary>
         /// Gets weather warnings from DWD (Deutscher Wetterdienst - German Weather Service) for a specific location.
         /// </summary>
@@ -421,10 +411,6 @@ namespace Xcalibur.Weather.Services
                 return null;
             }
         }
-
-        #endregion
-
-        #region Combined Methods
 
         /// <summary>
         /// Gets combined weather alerts from Meteoalarm, NWS, and GDACS.
