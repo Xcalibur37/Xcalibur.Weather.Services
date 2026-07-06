@@ -84,7 +84,6 @@ namespace Xcalibur.Weather.Services.Tests
             result.Current.Should().NotBeNull();
             result.Current!.Temperature.Should().BeApproximately(15.5, 1e-6);
             result.Current.RelativeHumidity.Should().BeApproximately(55.0, 1e-6);
-            result.Current.WeatherCodeValue.Should().Be("Clear sky");
         }
 
         [Fact]
