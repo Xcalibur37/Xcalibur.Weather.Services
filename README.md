@@ -21,7 +21,7 @@ A comprehensive .NET library providing HTTP client services for weather-related 
 
 ## Latest Updates
 
-- **Package version**: `1.0.15`
+- **Package version**: `1.0.16`
 - **Models package dependency**: `1.0.15`
 - **Target framework**: .NET 10.0
 - **Latest release**: Performance improvements and property descriptions for Weather Alerts
@@ -84,7 +84,7 @@ A comprehensive .NET library providing HTTP client services for weather-related 
 ## 🔧 Technology
 
 - **Target Framework**: .NET 10.0
-- **Current Package Version**: 1.0.15
+- **Current Package Version**: 1.0.16
 - **Dependencies**:
   - Microsoft.Extensions.Hosting (v10.0.10) - For logging and dependency injection abstractions
   - Xcalibur.Weather.Models (v1.0.15) - Shared models and DTOs
@@ -130,7 +130,7 @@ Install-Package Xcalibur.Weather.Services
 Or add to your project file:
 
 ```xml
-<PackageReference Include="Xcalibur.Weather.Services" Version="1.0.15" />
+<PackageReference Include="Xcalibur.Weather.Services" Version="1.0.16" />
 ```
 
 ## 🌦️ Services
@@ -875,7 +875,7 @@ set ATMOSPORE_API_KEY=your_key_here
 
 ## 📜 Version History
 
-### v1.0.15 (Current)
+### v1.0.16 (Current)
 - Several improvements and bug fixes
 - Updated dependencies to latest stable versions
 
