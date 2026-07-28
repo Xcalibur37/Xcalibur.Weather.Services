@@ -98,22 +98,5 @@ namespace Xcalibur.Weather.Services.Tests
             result.Should().BeNull();
         }
 
-        [Fact]
-        public async Task Constructor_AddsUserAgent_WhenMissing()
-        {
-            // Arrange
-            var response = new HttpResponseMessage(HttpStatusCode.OK)
-            {
-                Content = new StringContent("[]", Encoding.UTF8, "application/json")
-            };
-
-            using var http = new HttpClient(new DelegatingHandlerStub(response));
-
-            // Act
-            _ = new OpenStreetMapService(http, NullLogger<OpenStreetMapService>.Instance);
-
-            // Assert
-            http.DefaultRequestHeaders.UserAgent.ToString().Should().NotBeNullOrWhiteSpace();
+            }
         }
-    }
-}

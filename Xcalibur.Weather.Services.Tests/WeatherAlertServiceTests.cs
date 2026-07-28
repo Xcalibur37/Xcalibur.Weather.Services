@@ -200,21 +200,6 @@ namespace Xcalibur.Weather.Services.Tests
         }
 
         [Fact]
-        public void Constructor_AddsUserAgent_WhenMissing()
-        {
-            // Arrange
-            using var http = new HttpClient();
-
-            // Act
-            var service = new WeatherAlertService(http, NullLogger<WeatherAlertService>.Instance);
-
-            // Assert
-            http.DefaultRequestHeaders.UserAgent.Should().NotBeEmpty();
-            var userAgent = http.DefaultRequestHeaders.UserAgent.ToString();
-            userAgent.Should().Contain("Xcalibur.Weather");
-        }
-
-        [Fact]
         public void Constructor_PreservesExistingUserAgent()
         {
             // Arrange

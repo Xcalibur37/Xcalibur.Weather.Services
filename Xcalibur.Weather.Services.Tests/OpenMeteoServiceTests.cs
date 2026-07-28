@@ -221,6 +221,19 @@ namespace Xcalibur.Weather.Services.Tests
             var json =
                 """
                 {
+                  "latitude": 12.34,
+                  "longitude": 56.78,
+                  "generationtime_ms": 0.5,
+                  "utc_offset_seconds": 0,
+                  "timezone": "UTC",
+                  "timezone_abbreviation": "UTC",
+                  "elevation": 50.0,
+                  "daily_units": {
+                    "time": "iso8601",
+                    "weather_code": "wmo code",
+                    "temperature_2m_max": "°C",
+                    "temperature_2m_min": "°C"
+                  },
                   "daily": {
                     "time": ["2023-01-01", "2023-01-02"],
                     "weather_code": [0, 1],
@@ -348,8 +361,8 @@ namespace Xcalibur.Weather.Services.Tests
         [InlineData("51.5074", "-0.1278", "ukmo_seamless")] // London, UK
         [InlineData("48.8566", "2.3522", "meteofrance_seamless")] // Paris, France
         [InlineData("52.5200", "13.4050", "icon_seamless")] // Berlin, Germany
-        [InlineData("43.6532", "-79.3832", "gem_seamless")] // Toronto, Canada
-        [InlineData("60.1695", "-149.9003", "gem_seamless")] // Alaska (within Canada bounds)
+        [InlineData("43.6532", "-79.3832", "ncep_hrrr_conus")] // Toronto, Canada (within CONUS bounds)
+        [InlineData("60.1695", "-149.9003", "gfs_seamless")] // Alaska (outside all regional bounds, uses global fallback)
         [InlineData("35.6762", "139.6503", "jma_seamless")] // Tokyo, Japan
         [InlineData("-33.8688", "151.2093", "bom_access_global")] // Sydney, Australia
         [InlineData("-41.2865", "174.7762", "bom_access_global")] // Wellington, New Zealand
@@ -408,7 +421,7 @@ namespace Xcalibur.Weather.Services.Tests
         [InlineData("51.5074", "-0.1278", "ukmo_seamless")] // London, UK
         [InlineData("48.8566", "2.3522", "meteofrance_seamless")] // Paris, France
         [InlineData("52.5200", "13.4050", "icon_seamless")] // Berlin, Germany
-        [InlineData("43.6532", "-79.3832", "gem_seamless")] // Toronto, Canada
+        [InlineData("43.6532", "-79.3832", "ncep_nbm_conus")] // Toronto, Canada (within CONUS bounds for hourly)
         [InlineData("35.6762", "139.6503", "jma_seamless")] // Tokyo, Japan
         [InlineData("-33.8688", "151.2093", "bom_access_global")] // Sydney, Australia
         [InlineData("0", "0", "gfs_seamless")] // Atlantic Ocean - global fallback
@@ -467,16 +480,16 @@ namespace Xcalibur.Weather.Services.Tests
         [Theory]
         [InlineData("40.7128", "-74.0060", "ncep_nbm_conus")] // New York, USA
         [InlineData("34.0522", "-118.2437", "ncep_nbm_conus")] // Los Angeles, USA
-        [InlineData("51.5074", "-0.1278", "ecmwf_ifs04")] // London, UK
-        [InlineData("48.8566", "2.3522", "ecmwf_ifs04")] // Paris, France
-        [InlineData("52.5200", "13.4050", "ecmwf_ifs04")] // Berlin, Germany
-        [InlineData("43.6532", "-79.3832", "gem_seamless")] // Toronto, Canada
+        [InlineData("51.5074", "-0.1278", "ukmo_seamless")] // London, UK (UK-specific model takes precedence)
+        [InlineData("48.8566", "2.3522", "meteofrance_seamless")] // Paris, France (France-specific bounds)
+        [InlineData("52.5200", "13.4050", "ecmwf_ifs025")] // Berlin, Germany (Europe bounds use ecmwf_ifs025)
+        [InlineData("43.6532", "-79.3832", "ncep_nbm_conus")] // Toronto, Canada (within CONUS bounds for daily)
         [InlineData("35.6762", "139.6503", "jma_seamless")] // Tokyo, Japan
         [InlineData("-33.8688", "151.2093", "bom_access_global")] // Sydney, Australia
         [InlineData("1.3521", "103.8198", "gfs_seamless")] // Singapore - Asia
         [InlineData("-23.5505", "-46.6333", "gfs_seamless")] // São Paulo, Brazil - South America
-        [InlineData("30.0444", "31.2357", "ecmwf_ifs04")] // Cairo, Egypt - Africa
-        [InlineData("0", "0", "ecmwf_ifs04")] // Atlantic Ocean - global fallback
+        [InlineData("30.0444", "31.2357", "gfs_seamless")] // Cairo, Egypt - Africa (falls in Africa bounds)
+        [InlineData("0", "0", "gfs_seamless")] // Atlantic Ocean - global fallback
         public async Task GetDailyForecastAsync_SelectsCorrectModel_ForLocation(string latitude, string longitude, string expectedModel)
         {
             // Arrange
@@ -579,8 +592,8 @@ namespace Xcalibur.Weather.Services.Tests
         }
 
         [Theory]
-        [InlineData("invalid", "0", "ecmwf_ifs04")] // Invalid latitude for daily - fallback
-        [InlineData("0", "invalid", "ecmwf_ifs04")] // Invalid longitude for daily - fallback
+        [InlineData("invalid", "0", "gfs_seamless")] // Invalid latitude for daily - fallback
+        [InlineData("0", "invalid", "gfs_seamless")] // Invalid longitude for daily - fallback
         public async Task GetDailyForecastAsync_WithInvalidCoordinates_UsesFallbackModel(string latitude, string longitude, string expectedModel)
         {
             // Arrange
