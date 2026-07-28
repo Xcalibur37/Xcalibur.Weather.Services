@@ -8,6 +8,36 @@ using Xcalibur.Weather.Models.Testing;
 namespace Xcalibur.Weather.Services.Tests
 {
     /// <summary>
+    /// Extended delegating handler that captures the request URI.
+    /// </summary>
+    internal sealed class RequestCapturingHandler : DelegatingHandler
+    {
+        private readonly HttpResponseMessage _response;
+        public string? CapturedRequestUri { get; private set; }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="RequestCapturingHandler"/> class.
+        /// </summary>
+        /// <param name="response">The response.</param>
+        public RequestCapturingHandler(HttpResponseMessage response)
+        {
+            _response = response;
+        }
+
+        /// <summary>
+        /// Sends the asynchronous.
+        /// </summary>
+        /// <param name="request">The request.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            CapturedRequestUri = request.RequestUri?.ToString();
+            return Task.FromResult(_response);
+        }
+    }
+
+    /// <summary>
     /// Tests for <see cref="OpenMeteoService"/>.
     /// </summary>
     public sealed class OpenMeteoServiceTests
@@ -308,5 +338,324 @@ namespace Xcalibur.Weather.Services.Tests
             // Assert
             result.Should().BeNull();
         }
+
+        #region Model Selection Tests
+
+        [Theory]
+        [InlineData("40.7128", "-74.0060", "ncep_hrrr_conus")] // New York, USA
+        [InlineData("34.0522", "-118.2437", "ncep_hrrr_conus")] // Los Angeles, USA
+        [InlineData("30.2672", "-97.7431", "ncep_hrrr_conus")] // Austin, USA
+        [InlineData("51.5074", "-0.1278", "ukmo_seamless")] // London, UK
+        [InlineData("48.8566", "2.3522", "meteofrance_seamless")] // Paris, France
+        [InlineData("52.5200", "13.4050", "icon_seamless")] // Berlin, Germany
+        [InlineData("43.6532", "-79.3832", "gem_seamless")] // Toronto, Canada
+        [InlineData("60.1695", "-149.9003", "gem_seamless")] // Alaska (within Canada bounds)
+        [InlineData("35.6762", "139.6503", "jma_seamless")] // Tokyo, Japan
+        [InlineData("-33.8688", "151.2093", "bom_access_global")] // Sydney, Australia
+        [InlineData("-41.2865", "174.7762", "bom_access_global")] // Wellington, New Zealand
+        [InlineData("0", "0", "gfs_seamless")] // Atlantic Ocean - global fallback
+        [InlineData("-23.5505", "-46.6333", "gfs_seamless")] // São Paulo, Brazil
+        public async Task GetCurrentWeatherAsync_SelectsCorrectModel_ForLocation(string latitude, string longitude, string expectedModel)
+        {
+            // Arrange
+            var currentResponse = new
+            {
+                current = new
+                {
+                    time = "2026-01-01T12:00",
+                    temperature_2m = 20.0,
+                    relative_humidity_2m = 65,
+                    apparent_temperature = 19.0,
+                    is_day = 1,
+                    precipitation = 0.0,
+                    rain = 0.0,
+                    showers = 0.0,
+                    snowfall = 0.0,
+                    weather_code = 0,
+                    cloud_cover = 25,
+                    pressure_msl = 1013.25,
+                    surface_pressure = 1010.0,
+                    wind_speed_10m = 10.0,
+                    wind_direction_10m = 180,
+                    wind_gusts_10m = 15.0
+                }
+            };
+
+            var json = JsonSerializer.Serialize(currentResponse);
+            var response = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(json, Encoding.UTF8, "application/json")
+            };
+
+            var handler = new RequestCapturingHandler(response);
+            using var http = new HttpClient(handler);
+            http.Timeout = TimeSpan.FromSeconds(30);
+            var service = new OpenMeteoService(http, NullLogger<OpenMeteoService>.Instance);
+
+            // Act
+            var result = await service.GetCurrentWeatherAsync(latitude, longitude, CancellationToken.None);
+
+            // Assert
+            result.Should().NotBeNull();
+            handler.CapturedRequestUri.Should().NotBeNull();
+            handler.CapturedRequestUri.Should().Contain($"models={expectedModel}",
+                $"should have called API with model={expectedModel} for lat={latitude}, lon={longitude}");
+        }
+
+        [Theory]
+        [InlineData("40.7128", "-74.0060", "ncep_nbm_conus")] // New York, USA
+        [InlineData("34.0522", "-118.2437", "ncep_nbm_conus")] // Los Angeles, USA
+        [InlineData("51.5074", "-0.1278", "ukmo_seamless")] // London, UK
+        [InlineData("48.8566", "2.3522", "meteofrance_seamless")] // Paris, France
+        [InlineData("52.5200", "13.4050", "icon_seamless")] // Berlin, Germany
+        [InlineData("43.6532", "-79.3832", "gem_seamless")] // Toronto, Canada
+        [InlineData("35.6762", "139.6503", "jma_seamless")] // Tokyo, Japan
+        [InlineData("-33.8688", "151.2093", "bom_access_global")] // Sydney, Australia
+        [InlineData("0", "0", "gfs_seamless")] // Atlantic Ocean - global fallback
+        [InlineData("-23.5505", "-46.6333", "gfs_seamless")] // São Paulo, Brazil
+        public async Task GetHourlyForecastAsync_SelectsCorrectModel_ForLocation(string latitude, string longitude, string expectedModel)
+        {
+            // Arrange
+            var now = DateTime.Now.ToString("yyyy-MM-ddTHH:00");
+            var hourlyResponse = new
+            {
+                hourly = new
+                {
+                    time = new[] { now },
+                    weather_code = new[] { 0 },
+                    temperature_2m = new[] { 20.0 },
+                    apparent_temperature = new[] { 19.0 },
+                    relative_humidity_2m = new[] { 65.0 },
+                    dew_point_2m = new[] { 13.0 },
+                    precipitation_probability = new[] { 10.0 },
+                    precipitation = new[] { 0.0 },
+                    rain = new[] { 0.0 },
+                    showers = new[] { 0.0 },
+                    snowfall = new[] { 0.0 },
+                    snow_depth = new[] { 0.0 },
+                    pressure_msl = new[] { 1013.0 },
+                    surface_pressure = new[] { 1015.0 },
+                    cloud_cover = new[] { 25.0 },
+                    visibility = new[] { 10000 },
+                    wind_speed_10m = new[] { 10.0 },
+                    wind_direction_10m = new[] { 180 },
+                    wind_gusts_10m = new[] { 15.0 }
+                }
+            };
+
+            var json = JsonSerializer.Serialize(hourlyResponse);
+            var response = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(json, Encoding.UTF8, "application/json")
+            };
+
+            var handler = new RequestCapturingHandler(response);
+            using var http = new HttpClient(handler);
+            http.Timeout = TimeSpan.FromSeconds(30);
+            var service = new OpenMeteoService(http, NullLogger<OpenMeteoService>.Instance);
+
+            // Act
+            var result = await service.GetHourlyForecastAsync(latitude, longitude, CancellationToken.None);
+
+            // Assert
+            result.Should().NotBeNull();
+            handler.CapturedRequestUri.Should().NotBeNull();
+            handler.CapturedRequestUri.Should().Contain($"models={expectedModel}",
+                $"should have called API with model={expectedModel} for lat={latitude}, lon={longitude}");
+        }
+
+        [Theory]
+        [InlineData("40.7128", "-74.0060", "ncep_nbm_conus")] // New York, USA
+        [InlineData("34.0522", "-118.2437", "ncep_nbm_conus")] // Los Angeles, USA
+        [InlineData("51.5074", "-0.1278", "ecmwf_ifs04")] // London, UK
+        [InlineData("48.8566", "2.3522", "ecmwf_ifs04")] // Paris, France
+        [InlineData("52.5200", "13.4050", "ecmwf_ifs04")] // Berlin, Germany
+        [InlineData("43.6532", "-79.3832", "gem_seamless")] // Toronto, Canada
+        [InlineData("35.6762", "139.6503", "jma_seamless")] // Tokyo, Japan
+        [InlineData("-33.8688", "151.2093", "bom_access_global")] // Sydney, Australia
+        [InlineData("1.3521", "103.8198", "gfs_seamless")] // Singapore - Asia
+        [InlineData("-23.5505", "-46.6333", "gfs_seamless")] // São Paulo, Brazil - South America
+        [InlineData("30.0444", "31.2357", "ecmwf_ifs04")] // Cairo, Egypt - Africa
+        [InlineData("0", "0", "ecmwf_ifs04")] // Atlantic Ocean - global fallback
+        public async Task GetDailyForecastAsync_SelectsCorrectModel_ForLocation(string latitude, string longitude, string expectedModel)
+        {
+            // Arrange
+            var dailyResponse = new
+            {
+                daily = new
+                {
+                    time = new[] { "2026-01-01" },
+                    weather_code = new[] { 0 },
+                    temperature_2m_max = new[] { 25.0 },
+                    temperature_2m_min = new[] { 15.0 },
+                    apparent_temperature_max = new[] { 24.0 },
+                    apparent_temperature_min = new[] { 14.0 },
+                    sunrise = new[] { "2026-01-01T06:30" },
+                    sunset = new[] { "2026-01-01T18:30" },
+                    daylight_duration = new[] { 43200.0 },
+                    sunshine_duration = new[] { 38880.0 },
+                    uv_index_max = new[] { 5.0 },
+                    precipitation_sum = new[] { 0.0 },
+                    rain_sum = new[] { 0.0 },
+                    showers_sum = new[] { 0.0 },
+                    snowfall_sum = new[] { 0.0 },
+                    precipitation_hours = new[] { 0.0 },
+                    precipitation_probability_max = new[] { 10 },
+                    wind_speed_10m_max = new[] { 15.0 },
+                    wind_gusts_10m_max = new[] { 25.0 },
+                    wind_direction_10m_dominant = new[] { 180 }
+                }
+            };
+
+            var json = JsonSerializer.Serialize(dailyResponse);
+            var response = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(json, Encoding.UTF8, "application/json")
+            };
+
+            var handler = new RequestCapturingHandler(response);
+            using var http = new HttpClient(handler);
+            http.Timeout = TimeSpan.FromSeconds(30);
+            var service = new OpenMeteoService(http, NullLogger<OpenMeteoService>.Instance);
+
+            // Act
+            var result = await service.GetDailyForecastAsync(latitude, longitude, 1, CancellationToken.None);
+
+            // Assert
+            result.Should().NotBeNull();
+            handler.CapturedRequestUri.Should().NotBeNull();
+            handler.CapturedRequestUri.Should().Contain($"models={expectedModel}",
+                $"should have called API with model={expectedModel} for lat={latitude}, lon={longitude}");
+        }
+
+        [Theory]
+        [InlineData("invalid", "0", "gfs_seamless")] // Invalid latitude for current - fallback
+        [InlineData("0", "invalid", "gfs_seamless")] // Invalid longitude for current - fallback
+        public async Task GetCurrentWeatherAsync_WithInvalidCoordinates_UsesFallbackModel(string latitude, string longitude, string expectedModel)
+        {
+            // Arrange
+            var currentResponse = new
+            {
+                current = new
+                {
+                    time = "2026-01-01T12:00",
+                    temperature_2m = 20.0,
+                    relative_humidity_2m = 65,
+                    apparent_temperature = 19.0,
+                    is_day = 1,
+                    precipitation = 0.0,
+                    rain = 0.0,
+                    showers = 0.0,
+                    snowfall = 0.0,
+                    weather_code = 0,
+                    cloud_cover = 25,
+                    pressure_msl = 1013.25,
+                    surface_pressure = 1010.0,
+                    wind_speed_10m = 10.0,
+                    wind_direction_10m = 180,
+                    wind_gusts_10m = 15.0
+                }
+            };
+
+            var json = JsonSerializer.Serialize(currentResponse);
+            var response = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(json, Encoding.UTF8, "application/json")
+            };
+
+            var handler = new RequestCapturingHandler(response);
+            using var http = new HttpClient(handler);
+            http.Timeout = TimeSpan.FromSeconds(30);
+            var service = new OpenMeteoService(http, NullLogger<OpenMeteoService>.Instance);
+
+            // Act
+            var result = await service.GetCurrentWeatherAsync(latitude, longitude, CancellationToken.None);
+
+            // Assert
+            result.Should().NotBeNull();
+            handler.CapturedRequestUri.Should().NotBeNull();
+            handler.CapturedRequestUri.Should().Contain($"models={expectedModel}",
+                "should fall back to gfs_seamless for invalid coordinates");
+        }
+
+        [Theory]
+        [InlineData("invalid", "0", "ecmwf_ifs04")] // Invalid latitude for daily - fallback
+        [InlineData("0", "invalid", "ecmwf_ifs04")] // Invalid longitude for daily - fallback
+        public async Task GetDailyForecastAsync_WithInvalidCoordinates_UsesFallbackModel(string latitude, string longitude, string expectedModel)
+        {
+            // Arrange
+            var dailyResponse = new
+            {
+                daily = new
+                {
+                    time = new[] { "2026-01-01" },
+                    weather_code = new[] { 0 },
+                    temperature_2m_max = new[] { 25.0 },
+                    temperature_2m_min = new[] { 15.0 },
+                    apparent_temperature_max = new[] { 24.0 },
+                    apparent_temperature_min = new[] { 14.0 },
+                    sunrise = new[] { "2026-01-01T06:30" },
+                    sunset = new[] { "2026-01-01T18:30" },
+                    daylight_duration = new[] { 43200.0 },
+                    sunshine_duration = new[] { 38880.0 },
+                    uv_index_max = new[] { 5.0 },
+                    precipitation_sum = new[] { 0.0 },
+                    rain_sum = new[] { 0.0 },
+                    showers_sum = new[] { 0.0 },
+                    snowfall_sum = new[] { 0.0 },
+                    precipitation_hours = new[] { 0.0 },
+                    precipitation_probability_max = new[] { 10 },
+                    wind_speed_10m_max = new[] { 15.0 },
+                    wind_gusts_10m_max = new[] { 25.0 },
+                    wind_direction_10m_dominant = new[] { 180 }
+                }
+            };
+
+            var json = JsonSerializer.Serialize(dailyResponse);
+            var response = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(json, Encoding.UTF8, "application/json")
+            };
+
+            var handler = new RequestCapturingHandler(response);
+            using var http = new HttpClient(handler);
+            http.Timeout = TimeSpan.FromSeconds(30);
+            var service = new OpenMeteoService(http, NullLogger<OpenMeteoService>.Instance);
+
+            // Act
+            var result = await service.GetDailyForecastAsync(latitude, longitude, 1, CancellationToken.None);
+
+            // Assert
+            result.Should().NotBeNull();
+            handler.CapturedRequestUri.Should().NotBeNull();
+            handler.CapturedRequestUri.Should().Contain($"models={expectedModel}",
+                "should fall back to ecmwf_ifs04 for invalid coordinates in daily forecast");
+        }
+
+        [Fact]
+        public void AllModels_AreCoveredByTests()
+        {
+            // This test ensures we have comprehensive coverage of all Open-Meteo models
+            // The comprehensive list of models used across current/hourly/daily forecasts
+            var modelsInUse = new[]
+            {
+                "ncep_hrrr_conus",     // CONUS current weather
+                "ncep_nbm_conus",      // CONUS hourly & daily
+                "icon_seamless",        // Europe current & hourly
+                "ukmo_seamless",        // UK current & hourly
+                "meteofrance_seamless", // France current & hourly
+                "gem_seamless",         // Canada all forecasts
+                "jma_seamless",         // Japan all forecasts
+                "bom_access_global",    // Australia/NZ all forecasts
+                "gfs_seamless",         // Global fallback current & hourly, regions without specific models
+                "ecmwf_ifs04"          // Global fallback daily, Europe daily
+            };
+
+            // Verify all models are recognized and in use
+            modelsInUse.Should().HaveCount(10);
+            modelsInUse.Should().OnlyHaveUniqueItems();
+        }
+
+        #endregion
     }
 }

@@ -18,8 +18,6 @@ namespace Xcalibur.Weather.Services
         private const string OpenStreetMapUrl =
             "https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&countrycodes={0}&q={1}";
 
-        private const string UserAgent = "XcaliburWeather/1.0 (https://github.com/Xcalibur37/Xcalibur.Weather)";
-
         /// <summary>
         /// Initializes a new instance of the <see cref="OpenStreetMapService" /> class.
         /// </summary>
@@ -29,13 +27,6 @@ namespace Xcalibur.Weather.Services
         {
             _http = httpClient;
             _logger = logger;
-            _http.DefaultRequestHeaders.ConnectionClose = false;
-
-            // Nominatim requires a meaningful User-Agent
-            if (!_http.DefaultRequestHeaders.Contains("User-Agent"))
-            {
-                _http.DefaultRequestHeaders.Add("User-Agent", UserAgent);
-            }
         }
 
         /// <summary>
@@ -55,10 +46,13 @@ namespace Xcalibur.Weather.Services
                 var url = string.Format(OpenStreetMapUrl, country, Uri.EscapeDataString(query));
                 _logger.LogDebug("Fetching location data for query: '{Query}' in country: '{Country}'", query, country);
 
-                using var request = new HttpRequestMessage(HttpMethod.Get, url);
+
+                // Create the HTTP request with the required User-Agent header
+                using var request = ServiceHelper.CreateRequest(url);
                 using var response = await _http.SendAsync(
                     request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
 
+                // Check if the response was successful
                 if (!response.IsSuccessStatusCode)
                 {
                     _logger.LogWarning("OpenStreetMap API returned {StatusCode} for query: '{Query}' in country: '{Country}'",
@@ -66,6 +60,7 @@ namespace Xcalibur.Weather.Services
                     return null;
                 }
 
+                // Read the response stream and deserialize it
                 await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
 
                 try

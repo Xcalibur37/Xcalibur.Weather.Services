@@ -41,14 +41,8 @@ namespace Xcalibur.Weather.Services
         /// <param name="logger">The logger.</param>
         public WeatherAlertService(HttpClient httpClient, ILogger logger)
         {
-            _http = httpClient;
-            _logger = logger;
-
-            _http.DefaultRequestHeaders.ConnectionClose = false;
-
-            // NWS requires a User-Agent header
-            if (_http.DefaultRequestHeaders.Contains("User-Agent")) return;
-            _http.DefaultRequestHeaders.Add("User-Agent", "Xcalibur.Weather/1.0 (weather-app; info@xcalibursystems.com)");
+            _http = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         #endregion
@@ -72,7 +66,7 @@ namespace Xcalibur.Weather.Services
                 var url = string.Format(MeteoalarmUrl, latitude, longitude);
                 _logger.LogDebug("Fetching Meteoalarm alerts for ({Latitude}, {Longitude})", latitude, longitude);
 
-                using var request = new HttpRequestMessage(HttpMethod.Get, url);
+                using var request = ServiceHelper.CreateRequest(url);
                 using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
 
                 if (!response.IsSuccessStatusCode)
@@ -126,10 +120,17 @@ namespace Xcalibur.Weather.Services
         {
             try
             {
+                // Validate input parameters
+                if (string.IsNullOrWhiteSpace(latitude) || string.IsNullOrWhiteSpace(longitude))
+                {
+                    _logger.LogWarning("Invalid coordinates provided for NWS alerts: ({Latitude}, {Longitude})", latitude, longitude);
+                    return null;
+                }
+
                 var url = string.Format(NwsAlertsUrl, latitude, longitude);
                 _logger.LogDebug("Fetching NWS alerts for ({Latitude}, {Longitude})", latitude, longitude);
 
-                using var request = new HttpRequestMessage(HttpMethod.Get, url);
+                using var request = ServiceHelper.CreateRequest(url);
                 using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
 
                 if (!response.IsSuccessStatusCode)
@@ -186,7 +187,7 @@ namespace Xcalibur.Weather.Services
                 var url = string.Format(GdacsUrl, latitude, longitude);
                 _logger.LogDebug("Fetching GDACS alerts for ({Latitude}, {Longitude})", latitude, longitude);
 
-                using var request = new HttpRequestMessage(HttpMethod.Get, url);
+                using var request = ServiceHelper.CreateRequest(url);
                 using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
 
                 if (!response.IsSuccessStatusCode)
@@ -246,7 +247,7 @@ namespace Xcalibur.Weather.Services
                 _logger.LogDebug("Fetching Environment Canada alerts for ({Latitude}, {Longitude}) in province: {ProvinceCode}",
                     latitude, longitude, provinceCode);
 
-                using var request = new HttpRequestMessage(HttpMethod.Get, url);
+                using var request = ServiceHelper.CreateRequest(url);
                 using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
 
                 if (!response.IsSuccessStatusCode)
@@ -306,7 +307,7 @@ namespace Xcalibur.Weather.Services
                 _logger.LogDebug("Fetching BOM alerts for ({Latitude}, {Longitude}) in state: {StateCode}",
                     latitude, longitude, stateCode);
 
-                using var request = new HttpRequestMessage(HttpMethod.Get, url);
+                using var request = ServiceHelper.CreateRequest(url);
                 using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
 
                 if (!response.IsSuccessStatusCode)

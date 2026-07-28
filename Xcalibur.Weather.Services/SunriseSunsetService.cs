@@ -25,8 +25,6 @@ namespace Xcalibur.Weather.Services
         {
             _http = httpClient;
             _logger = logger;
-
-            _http.DefaultRequestHeaders.ConnectionClose = false;
         }
 
         /// <summary>
@@ -46,9 +44,11 @@ namespace Xcalibur.Weather.Services
                 var url = string.Format(AstronomyUrl, latitude, longitude);
                 _logger.LogDebug("Fetching sunrise/sunset data for ({Latitude}, {Longitude})", latitude, longitude);
 
-                using var request = new HttpRequestMessage(HttpMethod.Get, url);
+                // Create the HTTP request with the required headers
+                using var request = ServiceHelper.CreateRequest(url);
                 using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
 
+                // Check if the response was successful
                 if (!response.IsSuccessStatusCode)
                 {
                     _logger.LogWarning("SunriseSunset API returned {StatusCode} for ({Latitude}, {Longitude})",
@@ -56,6 +56,7 @@ namespace Xcalibur.Weather.Services
                     return null;
                 }
 
+                // Read the response stream and deserialize it
                 await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
 
                 try

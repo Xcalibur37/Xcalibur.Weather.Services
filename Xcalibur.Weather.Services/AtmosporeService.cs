@@ -33,8 +33,6 @@ namespace Xcalibur.Weather.Services
             _apiKey = apiKey;
             _logger = logger;
 
-            _http.DefaultRequestHeaders.ConnectionClose = false;
-
             // Headers
             BuildHeaders(_apiKey);
         }
@@ -51,7 +49,7 @@ namespace Xcalibur.Weather.Services
                 _logger.LogDebug("Testing Atmospore API key");
 
                 // The Atmospore API uses the x-api-key header for authentication, so we need to include that in our test request
-                using var request = new HttpRequestMessage(HttpMethod.Get, TestUrl);
+                using var request = ServiceHelper.CreateRequest(TestUrl);
 
                 // Set headers for the request
                 SetHeaders(request);
@@ -101,7 +99,7 @@ namespace Xcalibur.Weather.Services
                 _logger.LogDebug("Fetching Atmospore pollen forecast for ({Latitude}, {Longitude}) on {Date}", latitude, longitude, dt);
 
                 // The Atmospore API uses the x-api-key header for authentication, so we need to include that in our request
-                using var request = new HttpRequestMessage(HttpMethod.Get, url);
+                using var request = ServiceHelper.CreateRequest(url);
                 
                 // Set headers for the request
                 SetHeaders(request);
@@ -172,7 +170,7 @@ namespace Xcalibur.Weather.Services
         private void SetHeaders(HttpRequestMessage? request)
         {
             if (request == null) return;
-            _headers.Apply(x => request.Headers.Add(x.Key, x.Value));
+            _headers.Apply(x => request.Headers.TryAddWithoutValidation(x.Key, x.Value));
         }
     }
 

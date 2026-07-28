@@ -30,9 +30,6 @@ namespace Xcalibur.Weather.Services
             _http = httpClient;
             _token = token;
             _logger = logger;
-
-            // Enable SSL for AOT
-            _http.DefaultRequestHeaders.ConnectionClose = false;
         }
 
         /// <summary>
@@ -47,7 +44,8 @@ namespace Xcalibur.Weather.Services
                 var url = string.Format(TestUrl, _token);
                 _logger.LogDebug("Testing API Key");
 
-                using var request = new HttpRequestMessage(HttpMethod.Get, url);
+                // Create the request and send it
+                using var request = ServiceHelper.CreateRequest(url);
                 using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
 
                 // Check for non-success status codes (e.g., 401 Unauthorized, 403 Forbidden)
@@ -82,7 +80,8 @@ namespace Xcalibur.Weather.Services
                 var url = string.Format(AstronomyUrl, _token, latitude, longitude);
                 _logger.LogDebug("Fetching sun/moon data for ({Latitude}, {Longitude})", latitude, longitude);
 
-                using var request = new HttpRequestMessage(HttpMethod.Get, url);
+                // Create the request and send it
+                using var request = ServiceHelper.CreateRequest(url);
                 using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
 
                 if (!response.IsSuccessStatusCode)

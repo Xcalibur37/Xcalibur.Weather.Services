@@ -24,25 +24,34 @@ namespace Xcalibur.Weather.Services
         private const string BaseAqiUrl = "https://air-quality-api.open-meteo.com/v1/air-quality?latitude={0}&longitude={1}&timezone=auto";
 
         // Use source-generated context for AOT and trimming safety
-        private const string CurrentForecastUrl = 
-            $"{BaseForecastUrl}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation," +
+        private const string CurrentForecastUrl =
+            BaseForecastUrl + "&models={2}&forecast_hours=18&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation," +
             "rain,showers,snowfall,weather_code,cloud_cover,pressure_msl,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m,is_day";
-        private const string HourlyForecast48HoursUrl = 
-            $"{BaseForecastUrl}&hourly=temperature_2m,relative_humidity_2m,dew_point_2m,apparent_temperature," +
-            "precipitation_probability,precipitation,rain,showers,snowfall,snow_depth,weather_code,pressure_msl," +
-            "surface_pressure,cloud_cover,visibility,wind_speed_10m,wind_direction_10m,wind_gusts_10m,uv_index,is_day&forecast_days=2";
-        private const string DailyForecastUrl = 
-            $"{BaseForecastUrl}&daily=temperature_2m_min,temperature_2m_max,weather_code,sunrise,sunset,daylight_duration," +
+
+        private const string HourlyForecast48HoursUrl =
+            BaseForecastUrl + "&models={2}&hourly=temperature_2m,relative_humidity_2m,dew_point_2m,apparent_temperature," +
+            "precipitation_probability,precipitation,rain,showers,snowfall,weather_code," +
+            "cloud_cover,visibility,wind_speed_10m,wind_direction_10m,wind_gusts_10m&forecast_days=2";
+
+        private const string HourlyForecast48HoursSupplementalUrl =
+            BaseForecastUrl + "&models={2}&hourly=snow_depth,pressure_msl,surface_pressure,uv_index,soil_moisture_9_to_27cm," +
+            "soil_moisture_27_to_81cm,is_day&forecast_days=2";
+
+        private const string DailyForecastUrl =
+            BaseForecastUrl + "&models={2}&daily=temperature_2m_min,temperature_2m_max,weather_code,sunrise,sunset,daylight_duration," +
             "sunshine_duration,rain_sum,showers_sum,snowfall_sum,precipitation_sum,precipitation_hours,precipitation_probability_max," +
-            "wind_speed_10m_max,wind_gusts_10m_max,uv_index_max&forecast_days={2}";
-        private const string YesterdayForecastHourlyUrl = 
-            $"{BaseHistoricalUrl}&hourly=temperature_2m,relative_humidity_2m,pressure_msl";
+            "wind_speed_10m_max,wind_gusts_10m_max&forecast_days={3}";
+
+        private const string YesterdayForecastHourlyUrl =
+            BaseHistoricalUrl + "&hourly=temperature_2m,relative_humidity_2m,pressure_msl";
+
         private const string YesterdayForecastDailyUrl =
-            $"{BaseHistoricalUrl}&daily=temperature_2m_min,temperature_2m_max,weather_code," +
+            BaseHistoricalUrl + "&daily=temperature_2m_min,temperature_2m_max,weather_code," +
             "sunrise,sunset,daylight_duration,sunshine_duration,rain_sum,showers_sum,snowfall_sum,precipitation_sum," +
             "precipitation_hours,wind_speed_10m_max,wind_gusts_10m_max";
+
         private const string CurrentAqiUrl =
-            $"{BaseAqiUrl}&current=us_aqi,pm10,carbon_monoxide,pm2_5,nitrogen_dioxide,sulphur_dioxide," +
+            BaseAqiUrl + "&forecast_hours=1&current=us_aqi,pm10,carbon_monoxide,pm2_5,nitrogen_dioxide,sulphur_dioxide," +
             "ozone,aerosol_optical_depth,dust,uv_index,uv_index_clear_sky,ammonia";
 
         #endregion
@@ -56,11 +65,8 @@ namespace Xcalibur.Weather.Services
         /// <param name="logger">The logger.</param>
         public OpenMeteoService(HttpClient httpClient, ILogger logger)
         {
-            _http = httpClient;
-            _logger = logger;
-
-            // Enable SSL for AOT
-            _http.DefaultRequestHeaders.ConnectionClose = false;
+            _http = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         #endregion
@@ -75,21 +81,23 @@ namespace Xcalibur.Weather.Services
         {
             try
             {
-                var url = string.Format(CurrentForecastUrl, latitude, longitude);
-                _logger.LogDebug("Fetching current weather for ({Latitude}, {Longitude})", latitude, longitude);
+                var model = GetBestCurrentWeatherModel(latitude, longitude);
+                var url = string.Format(CurrentForecastUrl, latitude, longitude, model);
+
+                _logger.LogDebug("Fetching current weather for ({Latitude}, {Longitude}) using model {Model}", latitude, longitude, model);
 
                 // Create and send HTTP request
-                using var request = new HttpRequestMessage(HttpMethod.Get, url);
+                using var request = ServiceHelper.CreateRequest(url);
                 using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
 
                 // Check for non-success status code
                 if (!response.IsSuccessStatusCode)
                 {
-                    _logger.LogWarning("OpenMeteo API returned {StatusCode} for current weather at ({Latitude}, {Longitude})", 
+                    _logger.LogWarning("OpenMeteo API returned {StatusCode} for current weather at ({Latitude}, {Longitude})",
                         response.StatusCode, latitude, longitude);
                     return null;
                 }
-                
+
                 // Simple streaming deserialize
                 await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
                 return await JsonSerializer.DeserializeAsync(stream, OpenMeteoJsonContext.Default.CurrentWeatherResponse, cancellationToken);
@@ -117,25 +125,55 @@ namespace Xcalibur.Weather.Services
         }
 
         /// <summary>
-        /// Calls the Open‑Meteo hourly endpoint and deserializes the root response.
-        /// Returns null on non-success HTTP response.
+        /// Gets the hourly forecast for the next 48 hours asynchronously.
         /// </summary>
+        /// <param name="latitude">The latitude.</param>
+        /// <param name="longitude">The longitude.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
         public async Task<HourlyWeatherResponse?> GetHourlyForecastAsync(string latitude, string longitude, CancellationToken cancellationToken = default)
+        {
+            var model = GetBestHourlyForecastModel(latitude, longitude);
+            return await GetHourlyForecastInternalAsync(model, latitude, longitude, HourlyForecast48HoursUrl, "Hourly Forecast", cancellationToken);
+        }
+
+        /// <summary>
+        /// Gets the supplemental hourly forecast for the next 48 hours asynchronously.
+        /// </summary>
+        /// <param name="latitude">The latitude.</param>
+        /// <param name="longitude">The longitude.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        public async Task<HourlyWeatherResponse?> GetHourlyForecastSupplementalAsync(string latitude, string longitude, CancellationToken cancellationToken = default) 
+            => await GetHourlyForecastInternalAsync("best_match", latitude, longitude, HourlyForecast48HoursSupplementalUrl, "Supplemental Hourly Forecast", cancellationToken);
+
+        /// <summary>
+        /// Calls the Open‑Meteo hourly endpoint and deserializes the root response.
+        /// </summary>
+        /// <param name="model">The model.</param>
+        /// <param name="latitude">The latitude.</param>
+        /// <param name="longitude">The longitude.</param>
+        /// <param name="urlTemplate">The URL template.</param>
+        /// <param name="title">The title.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        private async Task<HourlyWeatherResponse?> GetHourlyForecastInternalAsync(string model, string latitude, string longitude, string urlTemplate, string title, CancellationToken cancellationToken = default)
         {
             try
             {
-                var url = string.Format(HourlyForecast48HoursUrl, latitude, longitude);
-                _logger.LogDebug("Fetching hourly forecast for ({Latitude}, {Longitude})", latitude, longitude);
+                var url = string.Format(urlTemplate, latitude, longitude, model);
+
+                _logger.LogDebug("Fetching {Title} for ({Latitude}, {Longitude}) using model {Model}", title, latitude, longitude, model);
 
                 // Create and send HTTP request
-                using var request = new HttpRequestMessage(HttpMethod.Get, url);
+                using var request = ServiceHelper.CreateRequest(url);
                 using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
 
                 // Check for non-success status code
                 if (!response.IsSuccessStatusCode)
                 {
-                    _logger.LogWarning("OpenMeteo API returned {StatusCode} for hourly forecast at ({Latitude}, {Longitude})", 
-                        response.StatusCode, latitude, longitude);
+                    _logger.LogWarning("OpenMeteo API returned {StatusCode} for {Title} at ({Latitude}, {Longitude})",
+                        response.StatusCode, title, latitude, longitude);
                     return null;
                 }
 
@@ -145,22 +183,22 @@ namespace Xcalibur.Weather.Services
             }
             catch (HttpRequestException ex)
             {
-                _logger.LogError(ex, "HTTP request failed while fetching hourly forecast for ({Latitude}, {Longitude})", latitude, longitude);
+                _logger.LogError(ex, "HTTP request failed while fetching {Title} for ({Latitude}, {Longitude})", title, latitude, longitude);
                 return null;
             }
             catch (TaskCanceledException ex)
             {
-                _logger.LogWarning(ex, "Hourly forecast request timed out or was cancelled for ({Latitude}, {Longitude})", latitude, longitude);
+                _logger.LogWarning(ex, "{Title} request timed out or was cancelled for ({Latitude}, {Longitude})", title, latitude, longitude);
                 return null;
             }
             catch (JsonException ex)
             {
-                _logger.LogError(ex, "Failed to deserialize hourly forecast response for ({Latitude}, {Longitude})", latitude, longitude);
+                _logger.LogError(ex, "Failed to deserialize {Title} response for ({Latitude}, {Longitude})", title, latitude, longitude);
                 return null;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Unexpected error fetching hourly forecast for ({Latitude}, {Longitude})", latitude, longitude);
+                _logger.LogError(ex, "Unexpected error fetching {Title} for ({Latitude}, {Longitude})", title, latitude, longitude);
                 return null;
             }
         }
@@ -178,10 +216,11 @@ namespace Xcalibur.Weather.Services
             try
             {
                 var url = string.Format(YesterdayForecastHourlyUrl, latitude, longitude, dateValue, dateValue);
+
                 _logger.LogDebug("Fetching yesterday's hourly forecast for ({Latitude}, {Longitude}) on {Date}", latitude, longitude, dateValue);
 
                 // Create and send HTTP request
-                using var request = new HttpRequestMessage(HttpMethod.Get, url);
+                using var request = ServiceHelper.CreateRequest(url);
                 using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
 
                 // Check for non-success status code
@@ -230,17 +269,19 @@ namespace Xcalibur.Weather.Services
         {
             try
             {
-                var url = string.Format(DailyForecastUrl, latitude, longitude, forecastDays);
-                _logger.LogDebug("Fetching {ForecastDays}-day forecast for ({Latitude}, {Longitude})", forecastDays, latitude, longitude);
+                var model = GetBestDailyForecastModel(latitude, longitude);
+                var url = string.Format(DailyForecastUrl, latitude, longitude, model, forecastDays);
+
+                _logger.LogDebug("Fetching {ForecastDays}-day forecast for ({Latitude}, {Longitude}) using model {Model}", forecastDays, latitude, longitude, model);
 
                 // Create and send HTTP request
-                using var request = new HttpRequestMessage(HttpMethod.Get, url);
+                using var request = ServiceHelper.CreateRequest(url);
                 using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
 
                 // Check for non-success status code
                 if (!response.IsSuccessStatusCode)
                 {
-                    _logger.LogWarning("OpenMeteo API returned {StatusCode} for daily forecast at ({Latitude}, {Longitude})", 
+                    _logger.LogWarning("OpenMeteo API returned {StatusCode} for daily forecast at ({Latitude}, {Longitude})",
                         response.StatusCode, latitude, longitude);
                     return null;
                 }
@@ -285,10 +326,11 @@ namespace Xcalibur.Weather.Services
             try
             {
                 var url = string.Format(YesterdayForecastDailyUrl, latitude, longitude, startDateValue, endDateValue);
+
                 _logger.LogDebug("Fetching yesterday's daily forecast for ({Latitude}, {Longitude}) from {StartDate} to {EndDate}", latitude, longitude, startDateValue, endDateValue);
 
                 // Create and send HTTP request
-                using var request = new HttpRequestMessage(HttpMethod.Get, url);
+                using var request = ServiceHelper.CreateRequest(url);
                 using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
 
                 // Check for non-success status code
@@ -341,10 +383,11 @@ namespace Xcalibur.Weather.Services
             try
             {
                 var url = string.Format(CurrentAqiUrl, latitude, longitude);
+
                 _logger.LogDebug("Fetching air quality data for ({Latitude}, {Longitude})", latitude, longitude);
 
                 // Create and send HTTP request
-                using var request = new HttpRequestMessage(HttpMethod.Get, url);
+                using var request = ServiceHelper.CreateRequest(url);
                 using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
 
                 // Check for non-success status code
@@ -380,6 +423,115 @@ namespace Xcalibur.Weather.Services
                 return null;
             }
         }
+
+        #region Model Selection
+
+        /// <summary>
+        /// Determines the best Open-Meteo model for current weather based on location.
+        /// Uses region-specific high-resolution models for optimal nowcast accuracy.
+        /// </summary>
+        /// <param name="latitude">The latitude as a string.</param>
+        /// <param name="longitude">The longitude as a string.</param>
+        /// <returns>The model name to use for the API request.</returns>
+        private static string GetBestCurrentWeatherModel(string latitude, string longitude)
+        {
+            if (!double.TryParse(latitude, out double lat) || !double.TryParse(longitude, out double lon))
+                return "gfs_seamless"; // Global fallback
+
+            // Use region-specific models for better accuracy in current weather nowcasts
+            return lat switch
+            {
+                // Continental United States (CONUS) - HRRR provides 3km resolution, updated hourly
+                >= 21.0 and <= 52.0 when lon is >= -130.0 and <= -60.0 => "ncep_hrrr_conus",
+                // United Kingdom and Ireland - UK Met Office high-resolution model
+                >= 49.0 and <= 61.0 when lon is >= -11.0 and <= 3.0 => "ukmo_seamless",
+                // France and nearby regions - Météo-France AROME/ARPEGE
+                >= 41.0 and <= 52.0 when lon is >= -6.0 and <= 10.0 => "meteofrance_seamless",
+                // Europe (extended coverage) - ICON provides excellent resolution for Europe
+                >= 35.0 and <= 72.0 when lon is >= -15.0 and <= 45.0 => "icon_seamless",
+                // Canada - GEM model
+                >= 41.0 and <= 84.0 when lon is >= -141.0 and <= -52.0 => "gem_seamless",
+                // Japan - JMA model
+                >= 20.0 and <= 50.0 when lon is >= 120.0 and <= 150.0 => "jma_seamless",
+                // Australia and New Zealand - BOM model
+                >= -48.0 and <= -10.0 when lon is >= 110.0 and <= 180.0 => "bom_access_global",
+                _ => "gfs_seamless"
+            };
+        }
+
+        /// <summary>
+        /// Determines the best Open-Meteo model for hourly forecasts based on location.
+        /// Prioritizes models with strong short to medium-range forecast capabilities.
+        /// </summary>
+        /// <param name="latitude">The latitude as a string.</param>
+        /// <param name="longitude">The longitude as a string.</param>
+        /// <returns>The model name to use for the API request.</returns>
+        private static string GetBestHourlyForecastModel(string latitude, string longitude)
+        {
+            if (!double.TryParse(latitude, out double lat) || !double.TryParse(longitude, out double lon))
+                return "gfs_seamless"; // Global fallback
+
+            // Use region-specific models for better accuracy in hourly forecasts
+            return lat switch
+            {
+                // Continental United States (CONUS) - NBM blends multiple models for superior accuracy
+                >= 24.0 and <= 49.5 when lon is >= -125.0 and <= -66.0 => "ncep_nbm_conus",
+                // United Kingdom and Ireland - UK Met Office high-resolution model
+                >= 49.0 and <= 61.0 when lon is >= -11.0 and <= 3.0 => "ukmo_seamless",
+                // France and nearby regions - Météo-France AROME/ARPEGE
+                >= 41.0 and <= 52.0 when lon is >= -6.0 and <= 10.0 => "meteofrance_seamless",
+                // Europe (extended coverage) - ICON provides excellent hourly forecasts
+                >= 35.0 and <= 72.0 when lon is >= -15.0 and <= 45.0 => "icon_seamless",
+                // Canada - GEM model
+                >= 41.0 and <= 84.0 when lon is >= -141.0 and <= -52.0 => "gem_seamless",
+                // Japan - JMA model
+                >= 20.0 and <= 50.0 when lon is >= 120.0 and <= 150.0 => "jma_seamless",
+                // Australia and New Zealand - BOM model
+                >= -48.0 and <= -10.0 when lon is >= 110.0 and <= 180.0 => "bom_access_global",
+                _ => "gfs_seamless"
+            };
+        }
+
+        /// <summary>
+        /// Determines the best Open-Meteo model for daily forecasts based on location.
+        /// Selects models optimized for medium to long-range forecast accuracy.
+        /// </summary>
+        /// <param name="latitude">The latitude as a string.</param>
+        /// <param name="longitude">The longitude as a string.</param>
+        /// <returns>The model name to use for the API request.</returns>
+        private static string GetBestDailyForecastModel(string latitude, string longitude)
+        {
+            if (!double.TryParse(latitude, out double lat) || !double.TryParse(longitude, out double lon))
+                return "gfs_seamless"; // Global fallback
+
+            // Use region-specific models for better accuracy in daily forecasts
+            return lat switch
+            {
+                // Continental United States (CONUS) - NBM blends multiple models for superior accuracy
+                >= 24.0 and <= 49.5 when lon is >= -125.0 and <= -66.0 => "ncep_nbm_conus",
+                // United Kingdom and Ireland - UK Met Office
+                >= 49.0 and <= 61.0 when lon is >= -11.0 and <= 3.0 => "ukmo_seamless",
+                // France and nearby regions - Météo-France
+                >= 41.0 and <= 52.0 when lon is >= -6.0 and <= 10.0 => "meteofrance_seamless",
+                // Europe - ECMWF IFS is world-leading for medium-range forecasts
+                >= 35.0 and <= 72.0 when lon is >= -15.0 and <= 45.0 => "ecmwf_ifs025",
+                // Canada - GEM model
+                >= 41.0 and <= 84.0 when lon is >= -141.0 and <= -52.0 => "gem_seamless",
+                // Japan - JMA model
+                >= 20.0 and <= 50.0 when lon is >= 120.0 and <= 150.0 => "jma_seamless",
+                // Australia and New Zealand - BOM model
+                >= -48.0 and <= -10.0 when lon is >= 110.0 and <= 180.0 => "bom_access_global",
+                // Africa - GFS provides broad global coverage
+                >= -35.0 and <= 38.0 when lon is >= -18.0 and <= 52.0 => "gfs_seamless",
+                // Asia (excluding Japan) - GFS provides broad global coverage
+                >= -10.0 and <= 55.0 when lon is >= 60.0 and <= 150.0 => "gfs_seamless",
+                // South America - GFS for broad coverage
+                >= -56.0 and <= 13.0 when lon is >= -82.0 and <= -34.0 => "gfs_seamless",
+                _ => "gfs_seamless"
+            };
+        }
+
+        #endregion
 
         #endregion
     }
