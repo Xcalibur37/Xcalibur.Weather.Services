@@ -23,33 +23,43 @@ namespace Xcalibur.Weather.Services
         private const string BaseHistoricalUrl = "https://archive-api.open-meteo.com/v1/archive?latitude={0}&longitude={1}&start_date={2}&end_date={3}&timezone=auto";
         private const string BaseAqiUrl = "https://air-quality-api.open-meteo.com/v1/air-quality?latitude={0}&longitude={1}&timezone=auto";
 
-        // Use source-generated context for AOT and trimming safety
+        // Current Forecast URL
         private const string CurrentForecastUrl =
             BaseForecastUrl + "&models={2}&forecast_hours=18&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation," +
             "rain,showers,snowfall,weather_code,cloud_cover,pressure_msl,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m,is_day";
 
+        // Hourly Forecast for the next 48 hours URL
         private const string HourlyForecast48HoursUrl =
             BaseForecastUrl + "&models={2}&hourly=temperature_2m,relative_humidity_2m,dew_point_2m,apparent_temperature," +
             "precipitation_probability,precipitation,rain,showers,snowfall,weather_code," +
             "cloud_cover,visibility,wind_speed_10m,wind_direction_10m,wind_gusts_10m&forecast_days=2";
 
+        // Supplemental Hourly Forecast for the next 48 hours URL with additional parameters
         private const string HourlyForecast48HoursSupplementalUrl =
             BaseForecastUrl + "&models={2}&hourly=snow_depth,pressure_msl,surface_pressure,uv_index,soil_moisture_9_to_27cm," +
             "soil_moisture_27_to_81cm,is_day&forecast_days=2";
 
+        // Daily Forecast URL with additional parameters for a specified number of forecast days
         private const string DailyForecastUrl =
             BaseForecastUrl + "&models={2}&daily=temperature_2m_min,temperature_2m_max,weather_code,sunrise,sunset,daylight_duration," +
             "sunshine_duration,rain_sum,showers_sum,snowfall_sum,precipitation_sum,precipitation_hours,precipitation_probability_max," +
             "wind_speed_10m_max,wind_gusts_10m_max&forecast_days={3}";
 
-        private const string YesterdayForecastHourlyUrl =
-            BaseHistoricalUrl + "&hourly=temperature_2m,relative_humidity_2m,pressure_msl";
+        // Supplemental Daily Forecast URL with additional parameters for a specified number of forecast days
+        private const string DailyForecast48HoursSupplementalUrl =
+            BaseForecastUrl + "&models={2}&daily=relative_humidity_2m_min,relative_humidity_2m_max&forecast_days={3}";
 
+        // Yesterday's Forecast URLs for hourly and daily data
+        private const string YesterdayForecastHourlyUrl =
+            BaseHistoricalUrl + "&hourly=temperature_2m,relative_humidity_2m,uv_index,pressure_msl";
+
+        // Yesterday's Forecast URL for daily data with additional parameters
         private const string YesterdayForecastDailyUrl =
             BaseHistoricalUrl + "&daily=temperature_2m_min,temperature_2m_max,weather_code," +
             "sunrise,sunset,daylight_duration,sunshine_duration,rain_sum,showers_sum,snowfall_sum,precipitation_sum," +
             "precipitation_hours,wind_speed_10m_max,wind_gusts_10m_max";
 
+        // Current Air Quality URL with specific parameters for air quality indices
         private const string CurrentAqiUrl =
             BaseAqiUrl + "&forecast_hours=1&current=us_aqi,pm10,carbon_monoxide,pm2_5,nitrogen_dioxide,sulphur_dioxide," +
             "ozone,aerosol_optical_depth,dust,uv_index,uv_index_clear_sky,ammonia";
@@ -72,6 +82,8 @@ namespace Xcalibur.Weather.Services
         #endregion
 
         #region Methods
+
+        #region Current Forecast
 
         /// <summary>
         /// Gets the current weather data asynchronously.
@@ -128,6 +140,10 @@ namespace Xcalibur.Weather.Services
             }
         }
 
+        #endregion
+
+        #region Hourly Forecast
+
         /// <summary>
         /// Gets the hourly forecast for the next 48 hours asynchronously.
         /// </summary>
@@ -148,7 +164,7 @@ namespace Xcalibur.Weather.Services
         /// <param name="longitude">The longitude.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        public async Task<HourlyWeatherResponse?> GetHourlyForecastSupplementalAsync(string latitude, string longitude, CancellationToken cancellationToken = default) 
+        public async Task<HourlyWeatherResponse?> GetHourlyForecastSupplementalAsync(string latitude, string longitude, CancellationToken cancellationToken = default)
             => await GetHourlyForecastInternalAsync("best_match", latitude, longitude, HourlyForecast48HoursSupplementalUrl, "Supplemental Hourly Forecast", cancellationToken);
 
         /// <summary>
@@ -263,17 +279,48 @@ namespace Xcalibur.Weather.Services
             }
         }
 
+        #endregion
+
+        #region Daily Forecast
+
         /// <summary>
         /// Gets daily forecast for the given coordinates and number of days.
         /// Returns null on non-success HTTP response.
         /// </summary>
         public async Task<DailyWeatherResponse?> GetDailyForecastAsync(string latitude, string longitude, int forecastDays = 7, CancellationToken cancellationToken = default)
         {
+            var model = GetBestDailyForecastModel(latitude, longitude);
+            return await GetDailyForecastInternalAsync(model, latitude, longitude, forecastDays, DailyForecastUrl, "Daily Forecast", cancellationToken);
+
+        }
+
+        /// <summary>
+        /// Gets the supplemental hourly forecast for the next 48 hours asynchronously.
+        /// </summary>
+        /// <param name="latitude">The latitude.</param>
+        /// <param name="longitude">The longitude.</param>
+        /// <param name="forecastDays">The forecast days.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        public async Task<DailyWeatherResponse?> GetDailyForecastSupplementalAsync(string latitude, string longitude, int forecastDays = 7, CancellationToken cancellationToken = default)
+            => await GetDailyForecastInternalAsync("gfs_seamless", latitude, longitude, forecastDays, DailyForecast48HoursSupplementalUrl, "Supplemental Daily Forecast", cancellationToken);
+
+        /// <summary>
+        /// Gets the daily forecast for the given coordinates and number of days using a specific model.
+        /// </summary>
+        /// <param name="model">The model.</param>
+        /// <param name="latitude">The latitude.</param>
+        /// <param name="longitude">The longitude.</param>
+        /// <param name="forecastDays">The forecast days.</param>
+        /// <param name="urlTemplate">The URL template.</param>
+        /// <param name="title">The title.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        private async Task<DailyWeatherResponse?> GetDailyForecastInternalAsync(string model, string latitude, string longitude, int forecastDays, string urlTemplate, string title, CancellationToken cancellationToken = default)
+        {
             try
             {
-                var model = GetBestDailyForecastModel(latitude, longitude);
-                var url = string.Format(DailyForecastUrl, latitude, longitude, model, forecastDays);
-
+                var url = string.Format(urlTemplate, latitude, longitude, model, forecastDays);
                 _logger.LogDebug("Fetching {ForecastDays}-day forecast for ({Latitude}, {Longitude}) using model {Model}", forecastDays, latitude, longitude, model);
 
                 // Create and send HTTP request
@@ -372,6 +419,10 @@ namespace Xcalibur.Weather.Services
             }
         }
 
+        #endregion
+
+        #region Air Quality Forecast
+
         /// <summary>
         /// Gets the current air quality data asynchronously.
         /// </summary>
@@ -423,6 +474,8 @@ namespace Xcalibur.Weather.Services
                 return null;
             }
         }
+
+        #endregion
 
         #region Model Selection
 
