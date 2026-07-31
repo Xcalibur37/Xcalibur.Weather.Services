@@ -21,8 +21,8 @@ A comprehensive .NET library providing HTTP client services for weather-related 
 
 ## Latest Updates
 
-- **Package version**: `1.0.17`
-- **Models package dependency**: `1.0.15`
+- **Package version**: `1.0.18`
+- **Models package dependency**: `1.0.18`
 - **Target framework**: .NET 10.0
 - **Latest release**: Performance improvements and property descriptions for Weather Alerts
 - Added `AtmosporeService` for pollen forecast data from Atmospore API
@@ -84,10 +84,10 @@ A comprehensive .NET library providing HTTP client services for weather-related 
 ## 🔧 Technology
 
 - **Target Framework**: .NET 10.0
-- **Current Package Version**: 1.0.17
+- **Current Package Version**: 1.0.18
 - **Dependencies**:
   - Microsoft.Extensions.Hosting (v10.0.10) - For logging and dependency injection abstractions
-  - Xcalibur.Weather.Models (v1.0.15) - Shared models and DTOs
+  - Xcalibur.Weather.Models (v1.0.18) - Shared models and DTOs
 - **Features**:
   - Implicit usings enabled
   - Nullable reference types enabled
@@ -130,7 +130,7 @@ Install-Package Xcalibur.Weather.Services
 Or add to your project file:
 
 ```xml
-<PackageReference Include="Xcalibur.Weather.Services" Version="1.0.17" />
+<PackageReference Include="Xcalibur.Weather.Services" Version="1.0.18" />
 ```
 
 ## 🌦️ Services
@@ -695,7 +695,7 @@ if (locations != null)
 
 - **.NET 10.0**: Target framework
 - **Microsoft.Extensions.Hosting** (v10.0.10): For hosting, logging, and dependency injection abstractions
-- **Xcalibur.Weather.Models** (v1.0.15): Shared models and DTOs for weather data
+- **Xcalibur.Weather.Models** (v1.0.18): Shared models and DTOs for weather data
 
 ## 🧪 Testing
 
@@ -875,7 +875,11 @@ set ATMOSPORE_API_KEY=your_key_here
 
 ## 📜 Version History
 
-### v1.0.17 (Current)
+### v1.0.18 (Current)
+- Several improvements and bug fixes
+- Updated dependencies to latest stable versions
+
+### v1.0.17
 - Several improvements and bug fixes
 - Updated dependencies to latest stable versions
 
