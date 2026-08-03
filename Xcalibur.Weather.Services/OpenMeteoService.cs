@@ -39,6 +39,10 @@ namespace Xcalibur.Weather.Services
             BaseForecastUrl + "&models={2}&hourly=snow_depth,pressure_msl,surface_pressure,uv_index,soil_moisture_9_to_27cm," +
             "soil_moisture_27_to_81cm,is_day&forecast_days=2";
 
+        // Yesterday's Forecast URLs for hourly and daily data
+        private const string YesterdayForecastHourlyUrl =
+            BaseHistoricalUrl + "&hourly=temperature_2m,relative_humidity_2m,uv_index,pressure_msl";
+
         // Daily Forecast URL with additional parameters for a specified number of forecast days
         private const string DailyForecastUrl =
             BaseForecastUrl + "&models={2}&daily=temperature_2m_min,temperature_2m_max,weather_code,sunrise,sunset,daylight_duration," +
@@ -49,15 +53,11 @@ namespace Xcalibur.Weather.Services
         private const string DailyForecast48HoursSupplementalUrl =
             BaseForecastUrl + "&models={2}&daily=relative_humidity_2m_min,relative_humidity_2m_max&forecast_days={3}";
 
-        // Yesterday's Forecast URLs for hourly and daily data
-        private const string YesterdayForecastHourlyUrl =
-            BaseHistoricalUrl + "&hourly=temperature_2m,relative_humidity_2m,uv_index,pressure_msl";
-
         // Yesterday's Forecast URL for daily data with additional parameters
         private const string YesterdayForecastDailyUrl =
             BaseHistoricalUrl + "&daily=temperature_2m_min,temperature_2m_max,weather_code," +
             "sunrise,sunset,daylight_duration,sunshine_duration,rain_sum,showers_sum,snowfall_sum,precipitation_sum," +
-            "precipitation_hours,wind_speed_10m_max,wind_gusts_10m_max";
+            "precipitation_hours,relative_humidity_2m_min,relative_humidity_2m_max,wind_speed_10m_max,wind_gusts_10m_max";
 
         // Current Air Quality URL with specific parameters for air quality indices
         private const string CurrentAqiUrl =
@@ -91,13 +91,14 @@ namespace Xcalibur.Weather.Services
         /// </summary>
         /// <param name="latitude">The latitude.</param>
         /// <param name="longitude">The longitude.</param>
+        /// <param name="targetModel">An explicit target model. If one is not specified, the system determines the best default based on the location.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        public async Task<CurrentWeatherResponse?> GetCurrentWeatherAsync(string latitude, string longitude, CancellationToken cancellationToken = default)
+        public async Task<CurrentWeatherResponse?> GetCurrentWeatherAsync(string latitude, string longitude, string targetModel = "", CancellationToken cancellationToken = default)
         {
             try
             {
-                var model = GetBestCurrentOrHourlyForecastModel(latitude, longitude);
+                var model = !string.IsNullOrEmpty(targetModel) ? targetModel : GetBestCurrentOrHourlyForecastModel(latitude, longitude);
                 var url = string.Format(CurrentForecastUrl, latitude, longitude, model);
 
                 _logger.LogDebug("Fetching current weather for ({Latitude}, {Longitude}) using model {Model}", latitude, longitude, model);
@@ -149,11 +150,12 @@ namespace Xcalibur.Weather.Services
         /// </summary>
         /// <param name="latitude">The latitude.</param>
         /// <param name="longitude">The longitude.</param>
+        /// <param name="targetModel">An explicit target model. If one is not specified, the system determines the best default based on the location.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        public async Task<HourlyWeatherResponse?> GetHourlyForecastAsync(string latitude, string longitude, CancellationToken cancellationToken = default)
+        public async Task<HourlyWeatherResponse?> GetHourlyForecastAsync(string latitude, string longitude, string targetModel = "", CancellationToken cancellationToken = default)
         {
-            var model = GetBestCurrentOrHourlyForecastModel(latitude, longitude);
+            var model = !string.IsNullOrEmpty(targetModel) ? targetModel : GetBestCurrentOrHourlyForecastModel(latitude, longitude);
             return await GetHourlyForecastInternalAsync(model, latitude, longitude, HourlyForecast48HoursUrl, "Hourly Forecast", cancellationToken);
         }
 
@@ -287,9 +289,15 @@ namespace Xcalibur.Weather.Services
         /// Gets daily forecast for the given coordinates and number of days.
         /// Returns null on non-success HTTP response.
         /// </summary>
-        public async Task<DailyWeatherResponse?> GetDailyForecastAsync(string latitude, string longitude, int forecastDays = 7, CancellationToken cancellationToken = default)
+        /// <param name="latitude">The latitude.</param>
+        /// <param name="longitude">The longitude.</param>
+        /// <param name="forecastDays">The forecast days.</param>
+        /// <param name="targetModel">An explicit target model. If one is not specified, the system determines the best default based on the location.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        public async Task<DailyWeatherResponse?> GetDailyForecastAsync(string latitude, string longitude, int forecastDays = 7, string targetModel = "", CancellationToken cancellationToken = default)
         {
-            var model = GetBestDailyForecastModel(latitude, longitude);
+            var model = !string.IsNullOrEmpty(targetModel) ? targetModel : GetBestDailyForecastModel(latitude, longitude);
             return await GetDailyForecastInternalAsync(model, latitude, longitude, forecastDays, DailyForecastUrl, "Daily Forecast", cancellationToken);
 
         }

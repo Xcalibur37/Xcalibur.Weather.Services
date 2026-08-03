@@ -107,7 +107,7 @@ namespace Xcalibur.Weather.Services.Tests
             var service = new OpenMeteoService(http, NullLogger<OpenMeteoService>.Instance);
 
             // Act
-            var result = await service.GetCurrentWeatherAsync("12.34", "56.78", CancellationToken.None);
+            var result = await service.GetCurrentWeatherAsync("12.34", "56.78", "", CancellationToken.None);
 
             // Assert
             result.Should().NotBeNull();
@@ -204,7 +204,7 @@ namespace Xcalibur.Weather.Services.Tests
             var service = new OpenMeteoService(http, NullLogger<OpenMeteoService>.Instance);
 
             // Act
-            var result = await service.GetHourlyForecastAsync("12.34", "56.78", CancellationToken.None);
+            var result = await service.GetHourlyForecastAsync("12.34", "56.78", "",CancellationToken.None);
 
             // Assert
             result.Should().NotBeNull();
@@ -266,7 +266,7 @@ namespace Xcalibur.Weather.Services.Tests
             var service = new OpenMeteoService(http, NullLogger<OpenMeteoService>.Instance);
 
             // Act
-            var result = await service.GetDailyForecastAsync("12.34", "56.78", 2, CancellationToken.None);
+            var result = await service.GetDailyForecastAsync("12.34", "56.78", 2, "",CancellationToken.None);
 
             // Assert
             result.Should().NotBeNull();
@@ -325,10 +325,10 @@ namespace Xcalibur.Weather.Services.Tests
             var service = new OpenMeteoService(http, NullLogger<OpenMeteoService>.Instance);
 
             // Act / Assert - all endpoints return null on non-success
-            (await service.GetCurrentWeatherAsync("1", "2", CancellationToken.None)).Should().BeNull();
+            (await service.GetCurrentWeatherAsync("1", "2", "", CancellationToken.None)).Should().BeNull();
             (await service.GetCurrentAirQualityAsync("1", "2", CancellationToken.None)).Should().BeNull();
-            (await service.GetHourlyForecastAsync("1", "2", CancellationToken.None)).Should().BeNull();
-            (await service.GetDailyForecastAsync("1", "2", 1, CancellationToken.None)).Should().BeNull();
+            (await service.GetHourlyForecastAsync("1", "2", "", CancellationToken.None)).Should().BeNull();
+            (await service.GetDailyForecastAsync("1", "2", 1, "", CancellationToken.None)).Should().BeNull();
             (await service.GetYesterdayHourlyForecastAsync("1", "2", "2023-01-01", CancellationToken.None)).Should().BeNull();
         }
 
@@ -346,7 +346,7 @@ namespace Xcalibur.Weather.Services.Tests
             var service = new OpenMeteoService(http, NullLogger<OpenMeteoService>.Instance);
 
             // Act
-            var result = await service.GetCurrentWeatherAsync("12.34", "56.78", CancellationToken.None);
+            var result = await service.GetCurrentWeatherAsync("12.34", "56.78", "", CancellationToken.None);
 
             // Assert
             result.Should().BeNull();
@@ -406,7 +406,7 @@ namespace Xcalibur.Weather.Services.Tests
             var service = new OpenMeteoService(http, NullLogger<OpenMeteoService>.Instance);
 
             // Act
-            var result = await service.GetCurrentWeatherAsync(latitude, longitude, CancellationToken.None);
+            var result = await service.GetCurrentWeatherAsync(latitude, longitude, "", CancellationToken.None);
 
             // Assert
             result.Should().NotBeNull();
@@ -468,7 +468,7 @@ namespace Xcalibur.Weather.Services.Tests
             var service = new OpenMeteoService(http, NullLogger<OpenMeteoService>.Instance);
 
             // Act
-            var result = await service.GetHourlyForecastAsync(latitude, longitude, CancellationToken.None);
+            var result = await service.GetHourlyForecastAsync(latitude, longitude, "", CancellationToken.None);
 
             // Assert
             result.Should().NotBeNull();
@@ -532,7 +532,7 @@ namespace Xcalibur.Weather.Services.Tests
             var service = new OpenMeteoService(http, NullLogger<OpenMeteoService>.Instance);
 
             // Act
-            var result = await service.GetDailyForecastAsync(latitude, longitude, 1, CancellationToken.None);
+            var result = await service.GetDailyForecastAsync(latitude, longitude, 1, "", CancellationToken.None);
 
             // Assert
             result.Should().NotBeNull();
@@ -582,7 +582,7 @@ namespace Xcalibur.Weather.Services.Tests
             var service = new OpenMeteoService(http, NullLogger<OpenMeteoService>.Instance);
 
             // Act
-            var result = await service.GetCurrentWeatherAsync(latitude, longitude, CancellationToken.None);
+            var result = await service.GetCurrentWeatherAsync(latitude, longitude, "", CancellationToken.None);
 
             // Assert
             result.Should().NotBeNull();
@@ -636,7 +636,7 @@ namespace Xcalibur.Weather.Services.Tests
             var service = new OpenMeteoService(http, NullLogger<OpenMeteoService>.Instance);
 
             // Act
-            var result = await service.GetDailyForecastAsync(latitude, longitude, 1, CancellationToken.None);
+            var result = await service.GetDailyForecastAsync(latitude, longitude, 1, "", CancellationToken.None);
 
             // Assert
             result.Should().NotBeNull();

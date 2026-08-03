@@ -7,7 +7,7 @@
 
 		<!-- NuGet Package Metadata -->
 		<PackageId>Xcalibur.Weather.Services</PackageId>
-		<Version>1.0.18</Version>
+		<Version>1.0.19</Version>
 		<Authors>Joshua Arzt</Authors>
 		<Company>Xcalibur Systems, LLC.</Company>
 		<Product>Xcalibur.Weather.Services</Product>
@@ -17,7 +17,7 @@
 		<RepositoryType>git</RepositoryType>
 		<PackageIcon>X_logo_512.png</PackageIcon>
 		<PackageTags>weather;forecast;openmeteo;geocoding;air-quality;astronomy;services;httpclient;weather-api;meteorology;ipgeolocation;atmospore;pollen;weather-alerts;sunrise-sunset;openstreetmap;async</PackageTags>
-		<PackageReleaseNotes>Several improvements and bug fixes.</PackageReleaseNotes>
+		<PackageReleaseNotes>Added more OpenMeteo functionality.</PackageReleaseNotes>
 		<PublishRepositoryUrl>true</PublishRepositoryUrl>
 		<EmbedUntrackedSources>true</EmbedUntrackedSources>
 		<PackageLicenseExpression></PackageLicenseExpression>
