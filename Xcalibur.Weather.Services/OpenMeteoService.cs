@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Xcalibur.Weather.Models.Services.OpenMeteo.CurrentAirQuality;
 using Xcalibur.Weather.Models.Services.OpenMeteo.CurrentWeather;
 using Xcalibur.Weather.Models.Services.OpenMeteo.DailyWeather;
+using Xcalibur.Weather.Models.Services.OpenMeteo.HourlyAirQuality;
 using Xcalibur.Weather.Models.Services.OpenMeteo.HourlyWeather;
 
 namespace Xcalibur.Weather.Services
@@ -61,8 +62,15 @@ namespace Xcalibur.Weather.Services
 
         // Current Air Quality URL with specific parameters for air quality indices
         private const string CurrentAqiUrl =
-            BaseAqiUrl + "&forecast_hours=1&current=us_aqi,pm10,carbon_monoxide,pm2_5,nitrogen_dioxide,sulphur_dioxide," +
-            "ozone,aerosol_optical_depth,dust,uv_index,uv_index_clear_sky,ammonia";
+            BaseAqiUrl + "&current=us_aqi,pm10,carbon_monoxide,pm2_5,nitrogen_dioxide,sulphur_dioxide," +
+            "ozone,aerosol_optical_depth,dust,uv_index,uv_index_clear_sky,ammonia&forecast_hours=1";
+
+        // Hourly Air Quality URL with specific parameters for air quality indices and forecast hours
+        private const string HourlyAqiUrl =
+            BaseAqiUrl + "&hourly=us_aqi,us_aqi_pm2_5,us_aqi_pm10,us_aqi_nitrogen_dioxide,us_aqi_carbon_monoxide," +
+            "us_aqi_ozone,us_aqi_sulphur_dioxide,european_aqi_pm2_5,european_aqi_pm10,european_aqi_nitrogen_dioxide," +
+            "european_aqi_ozone,european_aqi_sulphur_dioxide,european_aqi,pm10,pm2_5,carbon_monoxide,nitrogen_dioxide," +
+            "sulphur_dioxide,ozone&forecast_hours={2}";
 
         #endregion
 
@@ -438,7 +446,7 @@ namespace Xcalibur.Weather.Services
         /// <param name="longitude">The longitude.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        public async Task<AirQualityResponse?> GetCurrentAirQualityAsync(string latitude, string longitude, CancellationToken cancellationToken = default)
+        public async Task<CurrentAirQualityResponse?> GetCurrentAirQualityAsync(string latitude, string longitude, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -459,7 +467,7 @@ namespace Xcalibur.Weather.Services
 
                 // Simple streaming deserialize
                 await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-                return await JsonSerializer.DeserializeAsync<AirQualityResponse?>(stream, OpenMeteoJsonContext.Default.AirQualityResponse, cancellationToken);
+                return await JsonSerializer.DeserializeAsync<CurrentAirQualityResponse?>(stream, OpenMeteoJsonContext.Default.CurrentAirQualityResponse, cancellationToken);
             }
             catch (HttpRequestException ex)
             {
@@ -479,6 +487,59 @@ namespace Xcalibur.Weather.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Unexpected error fetching air quality for ({Latitude}, {Longitude})", latitude, longitude);
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Gets the hourly air quality forecast data asynchronously.
+        /// </summary>
+        /// <param name="latitude">The latitude.</param>
+        /// <param name="longitude">The longitude.</param>
+        /// <param name="forecastHours">The number of forecast hours to retrieve (default is 1).</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        public async Task<HourlyAirQualityResponse?> GetHourlyAirQualityAsync(string latitude, string longitude, int forecastHours = 1, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var url = string.Format(HourlyAqiUrl, latitude, longitude, forecastHours);
+                _logger.LogDebug("Fetching hourly air quality data for ({Latitude}, {Longitude}) with {ForecastHours} hours", latitude, longitude, forecastHours);
+
+                // Create and send HTTP request
+                using var request = ServiceHelper.CreateRequest(url);
+                using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+
+                // Check for non-success status code
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning("OpenMeteo API returned {StatusCode} for hourly air quality at ({Latitude}, {Longitude})",
+                        response.StatusCode, latitude, longitude);
+                    return null;
+                }
+
+                // Simple streaming deserialize
+                await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+                return await JsonSerializer.DeserializeAsync<HourlyAirQualityResponse?>(stream, OpenMeteoJsonContext.Default.HourlyAirQualityResponse, cancellationToken);
+            }
+            catch (HttpRequestException ex)
+            {
+                _logger.LogError(ex, "HTTP request failed while fetching hourly air quality for ({Latitude}, {Longitude})", latitude, longitude);
+                return null;
+            }
+            catch (TaskCanceledException ex)
+            {
+                _logger.LogWarning(ex, "Hourly air quality request timed out or was cancelled for ({Latitude}, {Longitude})", latitude, longitude);
+                return null;
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError(ex, "Failed to deserialize hourly air quality response for ({Latitude}, {Longitude})", latitude, longitude);
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error fetching hourly air quality for ({Latitude}, {Longitude})", latitude, longitude);
                 return null;
             }
         }
@@ -572,7 +633,8 @@ namespace Xcalibur.Weather.Services
     [JsonSerializable(typeof(CurrentWeatherResponse))]
     [JsonSerializable(typeof(HourlyWeatherResponse))]
     [JsonSerializable(typeof(DailyWeatherResponse))]
-    [JsonSerializable(typeof(AirQualityResponse))]
+    [JsonSerializable(typeof(CurrentAirQualityResponse))]
+    [JsonSerializable(typeof(HourlyAirQualityResponse))]
     [JsonSourceGenerationOptions(PropertyNameCaseInsensitive = true)]
     internal partial class OpenMeteoJsonContext : JsonSerializerContext { }
 }

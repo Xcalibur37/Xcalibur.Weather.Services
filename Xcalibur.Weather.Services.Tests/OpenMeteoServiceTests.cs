@@ -154,8 +154,134 @@ namespace Xcalibur.Weather.Services.Tests
             // Assert
             result.Should().NotBeNull();
             result.Current.Should().NotBeNull();
-            result.Current!.UsAqi.Should().Be(42);
+            result.Current!.US_Aqi.Should().Be(42);
             result.Current.Pm2_5.Should().BeApproximately(2.1, 1e-6);
+        }
+
+        [Fact]
+        public async Task GetHourlyAirQualityAsync_DeserializesHourly_WhenHttpOk()
+        {
+            // Arrange - minimal hourly air quality payload with two time points
+            var now = DateTime.Now.ToString("yyyy-MM-ddTHH:00");
+            var later = DateTime.Now.AddHours(1).ToString("yyyy-MM-ddTHH:00");
+
+            var hourlyAqiObj = new
+            {
+                hourly_units = new
+                {
+                    time = "iso8601",
+                    us_aqi = "",
+                    european_aqi = "",
+                    pm10 = "μg/m³",
+                    pm2_5 = "μg/m³",
+                    carbon_monoxide = "μg/m³",
+                    nitrogen_dioxide = "μg/m³",
+                    sulphur_dioxide = "μg/m³",
+                    ozone = "μg/m³"
+                },
+                hourly = new
+                {
+                    time = new[] { now, later },
+                    us_aqi = new int?[] { 42, 45 },
+                    us_aqi_pm2_5 = new int?[] { 40, 43 },
+                    us_aqi_pm10 = new int?[] { 35, 38 },
+                    us_aqi_nitrogen_dioxide = new int?[] { 20, 22 },
+                    us_aqi_carbon_monoxide = new int?[] { 15, 17 },
+                    us_aqi_ozone = new int?[] { 30, 32 },
+                    us_aqi_sulphur_dioxide = new int?[] { 10, 12 },
+                    european_aqi = new int?[] { 50, 52 },
+                    european_aqi_pm2_5 = new int?[] { 48, 50 },
+                    european_aqi_pm10 = new int?[] { 45, 47 },
+                    european_aqi_nitrogen_dioxide = new int?[] { 25, 27 },
+                    european_aqi_ozone = new int?[] { 35, 37 },
+                    european_aqi_sulphur_dioxide = new int?[] { 12, 14 },
+                    pm10 = new double?[] { 12.5, 13.2 },
+                    pm2_5 = new double?[] { 8.3, 9.1 },
+                    carbon_monoxide = new double?[] { 250.0, 260.0 },
+                    nitrogen_dioxide = new double?[] { 15.5, 16.2 },
+                    sulphur_dioxide = new double?[] { 5.1, 5.5 },
+                    ozone = new double?[] { 45.0, 47.0 }
+                }
+            };
+
+            var json = JsonSerializer.Serialize(hourlyAqiObj);
+
+            var response = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(json, Encoding.UTF8, "application/json")
+            };
+
+            using var http = new HttpClient(new DelegatingHandlerStub(response));
+            http.Timeout = TimeSpan.FromSeconds(30);
+            var service = new OpenMeteoService(http, NullLogger<OpenMeteoService>.Instance);
+
+            // Act
+            var result = await service.GetHourlyAirQualityAsync("39.43", "-77.80", 2, CancellationToken.None);
+
+            // Assert
+            result.Should().NotBeNull();
+            result.Hourly.Should().NotBeNull();
+            result.Hourly!.Time.Should().HaveCount(2);
+            result.Hourly.US_Aqi.Should().HaveCount(2);
+            result.Hourly.US_Aqi![0].Should().Be(42);
+            result.Hourly.US_Aqi[1].Should().Be(45);
+            result.Hourly.Pm2_5![0].Should().BeApproximately(8.3, 1e-6);
+            result.Hourly.EU_Aqi![0].Should().Be(50);
+            result.HourlyUnits.Should().NotBeNull();
+            result.HourlyUnits!.Pm10.Should().Be("μg/m³");
+        }
+
+        [Fact]
+        public async Task GetHourlyAirQualityAsync_UsesDefaultForecastHours_WhenNotSpecified()
+        {
+            // Arrange
+            var now = DateTime.Now.ToString("yyyy-MM-ddTHH:00");
+
+            var hourlyAqiObj = new
+            {
+                hourly = new
+                {
+                    time = new[] { now },
+                    us_aqi = new int?[] { 42 },
+                    pm2_5 = new double?[] { 8.3 }
+                }
+            };
+
+            var json = JsonSerializer.Serialize(hourlyAqiObj);
+
+            var response = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(json, Encoding.UTF8, "application/json")
+            };
+
+            using var http = new HttpClient(new DelegatingHandlerStub(response));
+            http.Timeout = TimeSpan.FromSeconds(30);
+            var service = new OpenMeteoService(http, NullLogger<OpenMeteoService>.Instance);
+
+            // Act - call without specifying forecastHours
+            var result = await service.GetHourlyAirQualityAsync("39.43", "-77.80", cancellationToken: CancellationToken.None);
+
+            // Assert
+            result.Should().NotBeNull();
+            result.Hourly.Should().NotBeNull();
+            result.Hourly!.Time.Should().HaveCount(1);
+        }
+
+        [Fact]
+        public async Task GetHourlyAirQualityAsync_ReturnsNull_OnNonSuccessStatus()
+        {
+            // Arrange
+            var response = new HttpResponseMessage(HttpStatusCode.BadRequest);
+
+            using var http = new HttpClient(new DelegatingHandlerStub(response));
+            http.Timeout = TimeSpan.FromSeconds(30);
+            var service = new OpenMeteoService(http, NullLogger<OpenMeteoService>.Instance);
+
+            // Act
+            var result = await service.GetHourlyAirQualityAsync("1", "2", 1, CancellationToken.None);
+
+            // Assert
+            result.Should().BeNull();
         }
 
         [Fact]

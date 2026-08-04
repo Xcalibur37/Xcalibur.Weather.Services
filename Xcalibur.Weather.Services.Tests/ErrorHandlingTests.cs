@@ -185,6 +185,22 @@ namespace Xcalibur.Weather.Services.Tests
             result.Should().BeNull();
         }
 
+        [Fact]
+        public async Task OpenMeteoService_GetHourlyAirQualityAsync_ReturnsNull_OnHttpRequestException()
+        {
+            // Arrange
+            var handler = new ThrowingHandler(new HttpRequestException("Network error"));
+            using var http = new HttpClient(handler);
+            http.Timeout = TimeSpan.FromSeconds(30);
+            var service = new OpenMeteoService(http, NullLogger<OpenMeteoService>.Instance);
+
+            // Act
+            var result = await service.GetHourlyAirQualityAsync("39.43", "-77.80", 1, CancellationToken.None);
+
+            // Assert
+            result.Should().BeNull();
+        }
+
         #endregion
 
         #region OpenStreetMapService Error Tests

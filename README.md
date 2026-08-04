@@ -21,14 +21,14 @@ A comprehensive .NET library providing HTTP client services for weather-related 
 
 ## Latest Updates
 
-- **Package version**: `1.0.19`
-- **Models package dependency**: `1.0.18`
+- **Package version**: `1.0.20`
+- **Models package dependency**: `1.0.20`
 - **Target framework**: .NET 10.0
-- **Latest release**: Performance improvements and property descriptions for Weather Alerts
+- **Latest release**: AQI enhancements to account for US and EU metrics
 - Added `AtmosporeService` for pollen forecast data from Atmospore API
 - Added `WeatherAlertService` for multi-provider weather alerts (Meteoalarm, NWS, GDACS, Environment Canada, BOM Australia, EMSC, DWD)
 - Services moved to flat namespace structure (`Xcalibur.Weather.Services`)
-- **All 44 unit tests passing** with comprehensive coverage across all services
+- **All 101 unit tests passing** with comprehensive coverage across all services
 
 ## 📋 Table of Contents
 
@@ -84,10 +84,10 @@ A comprehensive .NET library providing HTTP client services for weather-related 
 ## 🔧 Technology
 
 - **Target Framework**: .NET 10.0
-- **Current Package Version**: 1.0.19
+- **Current Package Version**: 1.0.20
 - **Dependencies**:
   - Microsoft.Extensions.Hosting (v10.0.10) - For logging and dependency injection abstractions
-  - Xcalibur.Weather.Models (v1.0.18) - Shared models and DTOs
+  - Xcalibur.Weather.Models (v1.0.20) - Shared models and DTOs
 - **Features**:
   - Implicit usings enabled
   - Nullable reference types enabled
@@ -130,7 +130,7 @@ Install-Package Xcalibur.Weather.Services
 Or add to your project file:
 
 ```xml
-<PackageReference Include="Xcalibur.Weather.Services" Version="1.0.19" />
+<PackageReference Include="Xcalibur.Weather.Services" Version="1.0.20" />
 ```
 
 ## 🌦️ Services
@@ -715,17 +715,19 @@ All tests use:
 
 ### Test Statistics
 
-- **Total Tests**: 44
+- **Total Tests**: 101
 - **Status**: ✅ All passing
 - **Coverage**: Comprehensive unit tests for all services
 
 ### Current Test Coverage
 
-**OpenMeteoServiceTests** (7 tests)
+**OpenMeteoServiceTests** (58 tests)
 - Current weather deserialization and validation
-- Air quality data retrieval
+- Current and hourly air quality data retrieval (US and EU AQI metrics)
+- Hourly air quality forecasts with configurable time ranges
 - Hourly and daily forecast operations
 - Historical weather data (yesterday)
+- Model selection for different geographic regions
 - Error handling for non-success HTTP responses
 - Invalid JSON response handling
 
@@ -768,6 +770,12 @@ All tests use:
 - Error handling for bad requests
 - Invalid JSON response handling
 
+**ErrorHandlingTests** (8 tests)
+- Comprehensive HTTP exception handling across all services
+- Network error resilience validation
+- Timeout and cancellation behavior
+- Service-level error recovery verification
+
 ## 🏗️ Project Structure
 
 ```
@@ -783,6 +791,7 @@ Xcalibur.Weather.Services/
 
 Xcalibur.Weather.Services.Tests/
 ├── AtmosporeServiceTests.cs
+├── ErrorHandlingTests.cs
 ├── GeocodioServiceTests.cs
 ├── IpGeoServiceTests.cs
 ├── OpenMeteoServiceTests.cs
@@ -875,7 +884,14 @@ set ATMOSPORE_API_KEY=your_key_here
 
 ## 📜 Version History
 
-### v1.0.19 (Current)
+### v1.0.20 (Current)
+- AQI enhancements to account for US and EU metrics
+- Added `GetHourlyAirQualityAsync` method for hourly air quality forecasts
+- Enhanced air quality monitoring with comprehensive US and European AQI values
+- Added support for hourly pollutant concentrations (PM2.5, PM10, O3, NO2, SO2, CO)
+- Improved test coverage with 101 passing tests
+
+### v1.0.19
 - Added more OpenMeteo functionality
 - Bug fixes and improvements
 
