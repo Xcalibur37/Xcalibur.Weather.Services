@@ -21,8 +21,8 @@ A comprehensive .NET library providing HTTP client services for weather-related 
 
 ## Latest Updates
 
-- **Package version**: `1.0.20`
-- **Models package dependency**: `1.0.20`
+- **Package version**: `1.0.21`
+- **Models package dependency**: `1.0.21`
 - **Target framework**: .NET 10.0
 - **Latest release**: AQI enhancements to account for US and EU metrics
 - Added `AtmosporeService` for pollen forecast data from Atmospore API
@@ -84,10 +84,10 @@ A comprehensive .NET library providing HTTP client services for weather-related 
 ## 🔧 Technology
 
 - **Target Framework**: .NET 10.0
-- **Current Package Version**: 1.0.20
+- **Current Package Version**: 1.0.21
 - **Dependencies**:
   - Microsoft.Extensions.Hosting (v10.0.10) - For logging and dependency injection abstractions
-  - Xcalibur.Weather.Models (v1.0.20) - Shared models and DTOs
+  - Xcalibur.Weather.Models (v1.0.21) - Shared models and DTOs
 - **Features**:
   - Implicit usings enabled
   - Nullable reference types enabled
@@ -130,7 +130,7 @@ Install-Package Xcalibur.Weather.Services
 Or add to your project file:
 
 ```xml
-<PackageReference Include="Xcalibur.Weather.Services" Version="1.0.20" />
+<PackageReference Include="Xcalibur.Weather.Services" Version="1.0.21" />
 ```
 
 ## 🌦️ Services
@@ -884,7 +884,7 @@ set ATMOSPORE_API_KEY=your_key_here
 
 ## 📜 Version History
 
-### v1.0.20 (Current)
+### v1.0.21 (Current)
 - AQI enhancements to account for US and EU metrics
 - Added `GetHourlyAirQualityAsync` method for hourly air quality forecasts
 - Enhanced air quality monitoring with comprehensive US and European AQI values
