@@ -147,7 +147,7 @@ namespace Xcalibur.Weather.Services.Tests
             var service = new OpenMeteoService(http, NullLogger<OpenMeteoService>.Instance);
 
             // Act
-            var result = await service.GetHourlyForecastAsync("39.43", "-77.80", "", CancellationToken.None);
+            var result = await service.GetHourlyForecastAsync("39.43", "-77.80", 1, 0, "", CancellationToken.None);
 
             // Assert
             result.Should().BeNull();
@@ -163,7 +163,7 @@ namespace Xcalibur.Weather.Services.Tests
             var service = new OpenMeteoService(http, NullLogger<OpenMeteoService>.Instance);
 
             // Act
-            var result = await service.GetDailyForecastAsync("39.43", "-77.80", 7, "", CancellationToken.None);
+            var result = await service.GetDailyForecastAsync("39.43", "-77.80", 7, 0, "", CancellationToken.None);
 
             // Assert
             result.Should().BeNull();

@@ -285,6 +285,37 @@ namespace Xcalibur.Weather.Services.Tests
         }
 
         [Fact]
+        public async Task GetHourlyAirQualityAsync_IncludesForecastDaysAndPastDays_InRequestUrl()
+        {
+            // Arrange
+            var response = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("""
+                {
+                  "hourly": {
+                    "time": ["2026-01-01T00:00"],
+                    "us_aqi": [42]
+                  }
+                }
+                """, Encoding.UTF8, "application/json")
+            };
+
+            var handler = new RequestCapturingHandler(response);
+            using var http = new HttpClient(handler);
+            http.Timeout = TimeSpan.FromSeconds(30);
+            var service = new OpenMeteoService(http, NullLogger<OpenMeteoService>.Instance);
+
+            // Act
+            var result = await service.GetHourlyAirQualityAsync("39.43", "-77.80", 3, 2, CancellationToken.None);
+
+            // Assert
+            result.Should().NotBeNull();
+            handler.CapturedRequestUri.Should().NotBeNull();
+            handler.CapturedRequestUri.Should().Contain("forecast_days=3");
+            handler.CapturedRequestUri.Should().Contain("past_days=2");
+        }
+
+        [Fact]
         public async Task GetHourlyForecastAsync_DeserializesHourly_WhenHttpOk()
         {
             // Arrange - minimal hourly payload with two time points
@@ -330,7 +361,7 @@ namespace Xcalibur.Weather.Services.Tests
             var service = new OpenMeteoService(http, NullLogger<OpenMeteoService>.Instance);
 
             // Act
-            var result = await service.GetHourlyForecastAsync("12.34", "56.78", "",CancellationToken.None);
+            var result = await service.GetHourlyForecastAsync("12.34", "56.78", 1, 0, "", CancellationToken.None);
 
             // Assert
             result.Should().NotBeNull();
@@ -392,7 +423,7 @@ namespace Xcalibur.Weather.Services.Tests
             var service = new OpenMeteoService(http, NullLogger<OpenMeteoService>.Instance);
 
             // Act
-            var result = await service.GetDailyForecastAsync("12.34", "56.78", 2, "",CancellationToken.None);
+            var result = await service.GetDailyForecastAsync("12.34", "56.78", 2, 0, "", CancellationToken.None);
 
             // Assert
             result.Should().NotBeNull();
@@ -453,8 +484,8 @@ namespace Xcalibur.Weather.Services.Tests
             // Act / Assert - all endpoints return null on non-success
             (await service.GetCurrentWeatherAsync("1", "2", "", CancellationToken.None)).Should().BeNull();
             (await service.GetCurrentAirQualityAsync("1", "2", CancellationToken.None)).Should().BeNull();
-            (await service.GetHourlyForecastAsync("1", "2", "", CancellationToken.None)).Should().BeNull();
-            (await service.GetDailyForecastAsync("1", "2", 1, "", CancellationToken.None)).Should().BeNull();
+            (await service.GetHourlyForecastAsync("1", "2", 1, 0, "", CancellationToken.None)).Should().BeNull();
+            (await service.GetDailyForecastAsync("1", "2", 1, 0, "", CancellationToken.None)).Should().BeNull();
             (await service.GetYesterdayHourlyForecastAsync("1", "2", "2023-01-01", CancellationToken.None)).Should().BeNull();
         }
 
@@ -594,7 +625,7 @@ namespace Xcalibur.Weather.Services.Tests
             var service = new OpenMeteoService(http, NullLogger<OpenMeteoService>.Instance);
 
             // Act
-            var result = await service.GetHourlyForecastAsync(latitude, longitude, "", CancellationToken.None);
+            var result = await service.GetHourlyForecastAsync(latitude, longitude, 1, 0, "", CancellationToken.None);
 
             // Assert
             result.Should().NotBeNull();
@@ -658,7 +689,7 @@ namespace Xcalibur.Weather.Services.Tests
             var service = new OpenMeteoService(http, NullLogger<OpenMeteoService>.Instance);
 
             // Act
-            var result = await service.GetDailyForecastAsync(latitude, longitude, 1, "", CancellationToken.None);
+            var result = await service.GetDailyForecastAsync(latitude, longitude, 1, 0, "", CancellationToken.None);
 
             // Assert
             result.Should().NotBeNull();
@@ -762,7 +793,7 @@ namespace Xcalibur.Weather.Services.Tests
             var service = new OpenMeteoService(http, NullLogger<OpenMeteoService>.Instance);
 
             // Act
-            var result = await service.GetDailyForecastAsync(latitude, longitude, 1, "", CancellationToken.None);
+            var result = await service.GetDailyForecastAsync(latitude, longitude, 1, 0, "", CancellationToken.None);
 
             // Assert
             result.Should().NotBeNull();
