@@ -63,14 +63,14 @@ namespace Xcalibur.Weather.Services
         // Current Air Quality URL with specific parameters for air quality indices
         private const string CurrentAqiUrl =
             BaseAqiUrl + "&current=us_aqi,pm10,carbon_monoxide,pm2_5,nitrogen_dioxide,sulphur_dioxide," +
-            "ozone,aerosol_optical_depth,dust,uv_index,uv_index_clear_sky,ammonia&forecast_hours=1";
+            "ozone,aerosol_optical_depth,dust,uv_index,uv_index_clear_sky,ammonia&forecast_hours=1&cell_selection=land";
 
         // Hourly Air Quality URL with specific parameters for air quality indices and forecast hours
         private const string HourlyAqiUrl =
             BaseAqiUrl + "&hourly=us_aqi,us_aqi_pm2_5,us_aqi_pm10,us_aqi_nitrogen_dioxide,us_aqi_carbon_monoxide," +
             "us_aqi_ozone,us_aqi_sulphur_dioxide,european_aqi_pm2_5,european_aqi_pm10,european_aqi_nitrogen_dioxide," +
             "european_aqi_ozone,european_aqi_sulphur_dioxide,european_aqi,pm10,pm2_5,carbon_monoxide,nitrogen_dioxide," +
-            "sulphur_dioxide,ozone&forecast_hours={2}";
+            "sulphur_dioxide,ozone&forecast_days={2}&past_days={3}&cell_selection=land";
 
         #endregion
 
@@ -496,15 +496,16 @@ namespace Xcalibur.Weather.Services
         /// </summary>
         /// <param name="latitude">The latitude.</param>
         /// <param name="longitude">The longitude.</param>
-        /// <param name="forecastHours">The number of forecast hours to retrieve (default is 1).</param>
+        /// <param name="forecastDays">The forecast days.</param>
+        /// <param name="pastDays">The past days.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        public async Task<HourlyAirQualityResponse?> GetHourlyAirQualityAsync(string latitude, string longitude, int forecastHours = 1, CancellationToken cancellationToken = default)
+        public async Task<HourlyAirQualityResponse?> GetHourlyAirQualityAsync(string latitude, string longitude, int forecastDays = 1, int pastDays = 0, CancellationToken cancellationToken = default)
         {
             try
             {
-                var url = string.Format(HourlyAqiUrl, latitude, longitude, forecastHours);
-                _logger.LogDebug("Fetching hourly air quality data for ({Latitude}, {Longitude}) with {ForecastHours} hours", latitude, longitude, forecastHours);
+                var url = string.Format(HourlyAqiUrl, latitude, longitude, forecastDays, pastDays);
+                _logger.LogDebug("Fetching hourly air quality data for ({Latitude}, {Longitude}) with {ForecastDays} forecast days and {PastDays} past days", latitude, longitude, forecastDays, pastDays);
 
                 // Create and send HTTP request
                 using var request = ServiceHelper.CreateRequest(url);

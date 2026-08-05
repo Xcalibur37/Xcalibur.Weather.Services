@@ -21,10 +21,10 @@ A comprehensive .NET library providing HTTP client services for weather-related 
 
 ## Latest Updates
 
-- **Package version**: `1.0.21`
+- **Package version**: `1.0.22`
 - **Models package dependency**: `1.0.21`
 - **Target framework**: .NET 10.0
-- **Latest release**: AQI enhancements to account for US and EU metrics
+- **Latest release**: GetHourlyAirQualityAsync allows for historic data retrieval by specifying forecastDays and pastDays parameters
 - Added `AtmosporeService` for pollen forecast data from Atmospore API
 - Added `WeatherAlertService` for multi-provider weather alerts (Meteoalarm, NWS, GDACS, Environment Canada, BOM Australia, EMSC, DWD)
 - Services moved to flat namespace structure (`Xcalibur.Weather.Services`)
@@ -84,7 +84,7 @@ A comprehensive .NET library providing HTTP client services for weather-related 
 ## 🔧 Technology
 
 - **Target Framework**: .NET 10.0
-- **Current Package Version**: 1.0.21
+- **Current Package Version**: 1.0.22
 - **Dependencies**:
   - Microsoft.Extensions.Hosting (v10.0.10) - For logging and dependency injection abstractions
   - Xcalibur.Weather.Models (v1.0.21) - Shared models and DTOs
@@ -130,7 +130,7 @@ Install-Package Xcalibur.Weather.Services
 Or add to your project file:
 
 ```xml
-<PackageReference Include="Xcalibur.Weather.Services" Version="1.0.21" />
+<PackageReference Include="Xcalibur.Weather.Services" Version="1.0.22" />
 ```
 
 ## 🌦️ Services
@@ -884,7 +884,12 @@ set ATMOSPORE_API_KEY=your_key_here
 
 ## 📜 Version History
 
-### v1.0.21 (Current)
+### v1.0.22 (Current)
+- `GetHourlyAirQualityAsync` now supports historic data retrieval
+- Added support for specifying `forecastDays` and `pastDays` parameters
+- Improved hourly air quality query flexibility
+
+### v1.0.21
 - AQI enhancements to account for US and EU metrics
 - Added `GetHourlyAirQualityAsync` method for hourly air quality forecasts
 - Enhanced air quality monitoring with comprehensive US and European AQI values

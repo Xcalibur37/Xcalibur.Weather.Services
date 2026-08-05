@@ -195,7 +195,7 @@ namespace Xcalibur.Weather.Services.Tests
             var service = new OpenMeteoService(http, NullLogger<OpenMeteoService>.Instance);
 
             // Act
-            var result = await service.GetHourlyAirQualityAsync("39.43", "-77.80", 1, CancellationToken.None);
+            var result = await service.GetHourlyAirQualityAsync("39.43", "-77.80", 1, 0, CancellationToken.None);
 
             // Assert
             result.Should().BeNull();

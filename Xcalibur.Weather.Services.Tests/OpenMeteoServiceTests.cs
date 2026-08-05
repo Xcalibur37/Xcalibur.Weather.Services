@@ -216,7 +216,7 @@ namespace Xcalibur.Weather.Services.Tests
             var service = new OpenMeteoService(http, NullLogger<OpenMeteoService>.Instance);
 
             // Act
-            var result = await service.GetHourlyAirQualityAsync("39.43", "-77.80", 2, CancellationToken.None);
+            var result = await service.GetHourlyAirQualityAsync("39.43", "-77.80", 2, 0, CancellationToken.None);
 
             // Assert
             result.Should().NotBeNull();
@@ -232,7 +232,7 @@ namespace Xcalibur.Weather.Services.Tests
         }
 
         [Fact]
-        public async Task GetHourlyAirQualityAsync_UsesDefaultForecastHours_WhenNotSpecified()
+        public async Task GetHourlyAirQualityAsync_UsesDefaultForecastDays_WhenNotSpecified()
         {
             // Arrange
             var now = DateTime.Now.ToString("yyyy-MM-ddTHH:00");
@@ -258,7 +258,7 @@ namespace Xcalibur.Weather.Services.Tests
             http.Timeout = TimeSpan.FromSeconds(30);
             var service = new OpenMeteoService(http, NullLogger<OpenMeteoService>.Instance);
 
-            // Act - call without specifying forecastHours
+            // Act - call without specifying forecastDays
             var result = await service.GetHourlyAirQualityAsync("39.43", "-77.80", cancellationToken: CancellationToken.None);
 
             // Assert
@@ -278,7 +278,7 @@ namespace Xcalibur.Weather.Services.Tests
             var service = new OpenMeteoService(http, NullLogger<OpenMeteoService>.Instance);
 
             // Act
-            var result = await service.GetHourlyAirQualityAsync("1", "2", 1, CancellationToken.None);
+            var result = await service.GetHourlyAirQualityAsync("1", "2", 1, 0, CancellationToken.None);
 
             // Assert
             result.Should().BeNull();
