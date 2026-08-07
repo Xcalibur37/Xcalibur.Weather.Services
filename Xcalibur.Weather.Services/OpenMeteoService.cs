@@ -106,7 +106,7 @@ namespace Xcalibur.Weather.Services
         {
             try
             {
-                var model = !string.IsNullOrEmpty(targetModel) ? targetModel : GetBestCurrentOrHourlyForecastModel(latitude, longitude);
+                var model = !string.IsNullOrEmpty(targetModel) ? targetModel : GetBestCurrentWeatherModel(latitude, longitude);
                 var url = string.Format(CurrentForecastUrl, latitude, longitude, model);
 
                 _logger.LogDebug("Fetching current weather for ({Latitude}, {Longitude}) using model {Model}", latitude, longitude, model);
@@ -165,7 +165,7 @@ namespace Xcalibur.Weather.Services
         /// <returns></returns>
         public async Task<HourlyWeatherResponse?> GetHourlyForecastAsync(string latitude, string longitude, int forecastDays = 1, int pastDays = 0, string targetModel = "", CancellationToken cancellationToken = default)
         {
-            var model = !string.IsNullOrEmpty(targetModel) ? targetModel : GetBestCurrentOrHourlyForecastModel(latitude, longitude);
+            var model = !string.IsNullOrEmpty(targetModel) ? targetModel : GetBestHourlyForecastModel(latitude, longitude);
             return await GetHourlyForecastInternalAsync(model, latitude, longitude, forecastDays, pastDays, 
                 HourlyForecast48HoursUrl, "Hourly Forecast", cancellationToken);
         }
@@ -563,27 +563,62 @@ namespace Xcalibur.Weather.Services
         #region Model Selection
 
         /// <summary>
-        /// Determines the best Open-Meteo model for current weather and hourly forecasts based on location.
-        /// Uses region-specific models for optimal accuracy.
+        /// Determines the best Open-Meteo model for daily forecasts based on location.
+        /// Selects models optimized for medium to long-range forecast accuracy.
+        /// </summary>
+        /// <param name="latitude">The latitude as a string.</param>
+        /// <param name="longitude">The longitude as a string.</param>
+        /// <returns>
+        /// The model name to use for the API request.
+        /// </returns>
+        private static string GetBestCurrentWeatherModel(string latitude, string longitude)
+        {
+            if (!double.TryParse(latitude, out double lat) || !double.TryParse(longitude, out double lon))
+                return "gfs_seamless"; // Global fallback
+
+            // Use region-specific models for better accuracy in current weather nowcasts
+            return lat switch
+            {
+                // Continental United States (CONUS) - HRRR provides 3km resolution, updated hourly
+                >= 21.0 and <= 52.0 when lon is >= -130.0 and <= -60.0 => "ncep_hrrr_conus",
+                // United Kingdom and Ireland - UK Met Office high-resolution model
+                >= 49.0 and <= 61.0 when lon is >= -11.0 and <= 3.0 => "ukmo_seamless",
+                // France and nearby regions - Météo-France AROME/ARPEGE
+                >= 41.0 and <= 52.0 when lon is >= -6.0 and <= 10.0 => "meteofrance_seamless",
+                // Europe (extended coverage) - ICON provides excellent resolution for Europe
+                >= 35.0 and <= 72.0 when lon is >= -15.0 and <= 45.0 => "icon_seamless",
+                // Canada - GEM model
+                >= 41.0 and <= 84.0 when lon is >= -141.0 and <= -52.0 => "gem_seamless",
+                // Japan - JMA model
+                >= 20.0 and <= 50.0 when lon is >= 120.0 and <= 150.0 => "jma_seamless",
+                // Australia and New Zealand - BOM model
+                >= -48.0 and <= -10.0 when lon is >= 110.0 and <= 180.0 => "bom_access_global",
+                _ => "gfs_seamless"
+            };
+        }
+
+        /// <summary>
+        /// Determines the best Open-Meteo model for hourly forecasts based on location.
+        /// Prioritizes models with strong short to medium-range forecast capabilities.
         /// </summary>
         /// <param name="latitude">The latitude as a string.</param>
         /// <param name="longitude">The longitude as a string.</param>
         /// <returns>The model name to use for the API request.</returns>
-        private static string GetBestCurrentOrHourlyForecastModel(string latitude, string longitude)
+        private static string GetBestHourlyForecastModel(string latitude, string longitude)
         {
-            if (!double.TryParse(latitude, out var lat) || !double.TryParse(longitude, out var lon))
+            if (!double.TryParse(latitude, out double lat) || !double.TryParse(longitude, out double lon))
                 return "gfs_seamless"; // Global fallback
 
-            // Use region-specific models for better accuracy
+            // Use region-specific models for better accuracy in hourly forecasts
             return lat switch
             {
-                // Continental United States (CONUS) - NBM blends multiple models
+                // Continental United States (CONUS) - NBM blends multiple models for superior accuracy
                 >= 24.0 and <= 49.5 when lon is >= -125.0 and <= -66.0 => "ncep_nbm_conus",
                 // United Kingdom and Ireland - UK Met Office high-resolution model
                 >= 49.0 and <= 61.0 when lon is >= -11.0 and <= 3.0 => "ukmo_seamless",
                 // France and nearby regions - Météo-France AROME/ARPEGE
                 >= 41.0 and <= 52.0 when lon is >= -6.0 and <= 10.0 => "meteofrance_seamless",
-                // Europe (extended coverage) - ICON provides excellent resolution
+                // Europe (extended coverage) - ICON provides excellent hourly forecasts
                 >= 35.0 and <= 72.0 when lon is >= -15.0 and <= 45.0 => "icon_seamless",
                 // Canada - GEM model
                 >= 41.0 and <= 84.0 when lon is >= -141.0 and <= -52.0 => "gem_seamless",
@@ -604,7 +639,7 @@ namespace Xcalibur.Weather.Services
         /// <returns>The model name to use for the API request.</returns>
         private static string GetBestDailyForecastModel(string latitude, string longitude)
         {
-            if (!double.TryParse(latitude, out var lat) || !double.TryParse(longitude, out var lon))
+            if (!double.TryParse(latitude, out double lat) || !double.TryParse(longitude, out double lon))
                 return "gfs_seamless"; // Global fallback
 
             // Use region-specific models for better accuracy in daily forecasts

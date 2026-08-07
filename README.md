@@ -84,7 +84,7 @@ A comprehensive .NET library providing HTTP client services for weather-related 
 ## 🔧 Technology
 
 - **Target Framework**: .NET 10.0
-- **Current Package Version**: 1.0.23
+- **Current Package Version**: 1.0.24
 - **Dependencies**:
   - Microsoft.Extensions.Hosting (v10.0.10) - For logging and dependency injection abstractions
   - Xcalibur.Weather.Models (v1.0.21) - Shared models and DTOs
@@ -130,7 +130,7 @@ Install-Package Xcalibur.Weather.Services
 Or add to your project file:
 
 ```xml
-<PackageReference Include="Xcalibur.Weather.Services" Version="1.0.23" />
+<PackageReference Include="Xcalibur.Weather.Services" Version="1.0.24" />
 ```
 
 ## 🌦️ Services
@@ -884,7 +884,7 @@ set ATMOSPORE_API_KEY=your_key_here
 
 ## 📜 Version History
 
-### v1.0.23 (Current)
+### v1.0.24 (Current)
 - OpenMeteo functions allow for historic data retrieval by specifying forecastDays and pastDays parameters
 - Enhanced flexibility for weather forecast queries with historic data support
 - Improved consistency across OpenMeteo API methods
